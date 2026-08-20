@@ -1,0 +1,21 @@
+name: backend
+description: A server app using the shelf package and routing.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.1.0
+
+dependencies:
+  args: ^2.4.2
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  http: ^1.2.2
+  sqflite_common_ffi: ^2.3.4
+  path: ^1.9.0
+  # For cross-origin requests if needed
+  shelf_cors_headers: ^0.1.5
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0

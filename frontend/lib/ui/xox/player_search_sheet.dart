@@ -8,7 +8,7 @@ import '../../game/xox/factor.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/animations.dart';
-import '../../widgets/brutalist_card.dart';
+import '../../widgets/premium_card.dart';
 import '../../widgets/factor_image.dart';
 import '../../widgets/states.dart';
 
@@ -208,10 +208,10 @@ class _PlayerSearchSheetState extends State<_PlayerSearchSheet> {
   Widget _buildSearchField() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: BrutalistCard(
+      child: PremiumCard(
         color: AppColors.surface,
         borderColor: AppColors.white,
-        shadowOffset: const Offset(4, 4),
+
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
@@ -311,10 +311,10 @@ class _FactorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surfaceLow,
       borderColor: AppColors.pitchGreen,
-      shadowOffset: Offset.zero,
+
       radius: 10,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Column(
@@ -349,10 +349,10 @@ class _PlayerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SpringScale(
       onTap: onTap,
-      child: BrutalistCard(
+      child: PremiumCard(
         color: AppColors.surface,
         borderColor: AppColors.border,
-        shadowOffset: const Offset(4, 4),
+
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: [
@@ -442,10 +442,10 @@ class _Banner extends StatelessWidget {
   Widget build(BuildContext context) {
     final color =
         status == SearchStatus.error ? AppColors.danger : AppColors.pitchGreen;
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surfaceLow,
       borderColor: color,
-      shadowOffset: Offset.zero,
+
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [

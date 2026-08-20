@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Spacing scale — a small, consistent set of gaps so layouts breathe the same
-/// way everywhere. Prefer these over magic `SizedBox` / `EdgeInsets` numbers.
+/// Spacing scale — a consistent set of gaps so layouts breathe the same
+/// way everywhere. Prefer these over magic numbers.
 class AppSpacing {
   AppSpacing._();
 
@@ -27,80 +27,59 @@ class AppSpacing {
 
 /// Shared visual constants and the global [ThemeData] for Flyball.
 ///
-/// The aesthetic is "Refined Neo-Brutalism": thick borders and hard (un-blurred)
-/// drop shadows on hero/interactive elements, but layered with softer elevation,
-/// a deliberate type scale and generous whitespace for a more considered feel.
+/// The aesthetic is "Premium Spatial" (Emil Kowalski inspired):
+/// Blurs, rounded corners, soft shadows, and incredibly smooth physics.
 class AppTheme {
   AppTheme._();
 
-  /// Standard thick border width for brutalist elements.
-  static const double borderWidth = 3.5;
-
-  /// A lighter border for quiet outlines.
-  static const double hairlineWidth = 2.0;
-
-  /// Standard blocky corner radius.
-  static const double radius = 16.0;
+  /// Standard soft corner radius for cards.
+  static const double radius = 24.0;
 
   /// A smaller radius for chips / compact elements.
-  static const double radiusSm = 10.0;
-
-  /// Default resting hard-shadow offset for raised elements.
-  static const Offset shadowOffset = Offset(6, 6);
+  static const double radiusSm = 12.0;
 
   // ---- Motion ---------------------------------------------------------------
+  
+  static const Duration durFast = Duration(milliseconds: 250);
+  static const Duration durMed = Duration(milliseconds: 500);
+  static const Duration durSlow = Duration(milliseconds: 700);
 
-  static const Duration durFast = Duration(milliseconds: 140);
-  static const Duration durMed = Duration(milliseconds: 280);
-  static const Duration durSlow = Duration(milliseconds: 440);
+  /// A luxurious, hyper-smooth spring curve for UI interactions.
+  static const Curve springCurve = Curves.easeOutCirc;
 
-  /// A lively settle for press/release micro-interactions.
-  static const Curve springCurve = Curves.easeOutBack;
-
-  /// A smooth, organic curve for entrances and transitions.
-  static const Curve emphasized = Curves.easeOutCubic;
+  /// A beautiful fluid entrance curve.
+  static const Curve emphasized = Curves.fastLinearToSlowEaseIn;
 
   // ---- Shadows --------------------------------------------------------------
 
-  /// A solid (no-blur) hard shadow — the brutalist signature. Reserve for
-  /// hero / interactive elements (buttons, headers, result banners).
-  static List<BoxShadow> hardShadow({
-    Offset offset = shadowOffset,
-    Color color = AppColors.black,
-  }) {
-    return [
-      BoxShadow(
-        color: color,
-        offset: offset,
-        blurRadius: 0,
-        spreadRadius: 0,
-      ),
-    ];
-  }
-
-  /// A softer, blurred elevation for non-hero surfaces (cards, sheets) so the
-  /// layout gains depth without everything shouting.
+  /// A beautiful, diffuse shadow giving a floating effect, replacing hard shadows.
   static List<BoxShadow> softShadow({double elevation = 1}) {
     return [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.45),
-        offset: Offset(0, 4 * elevation),
-        blurRadius: 16 * elevation,
-        spreadRadius: 0,
+        color: AppColors.black.withOpacity(0.4 * elevation),
+        offset: Offset(0, 8 * elevation),
+        blurRadius: 24 * elevation,
+        spreadRadius: -4 * elevation,
+      ),
+      BoxShadow(
+        color: AppColors.black.withOpacity(0.2 * elevation),
+        offset: Offset(0, 2 * elevation),
+        blurRadius: 8 * elevation,
+        spreadRadius: -2 * elevation,
       ),
     ];
   }
 
   // ---- Type scale -----------------------------------------------------------
 
-  /// A bold geometric heading style based on Space Grotesk.
+  /// A highly legible, beautiful modern sans-serif (Inter).
   static TextStyle heading(double size, {Color color = AppColors.textPrimary}) {
-    return GoogleFonts.spaceGrotesk(
+    return GoogleFonts.inter(
       fontSize: size,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
       color: color,
-      height: 1.05,
-      letterSpacing: -0.5,
+      height: 1.1,
+      letterSpacing: -0.8,
     );
   }
 
@@ -108,36 +87,36 @@ class AppTheme {
   static TextStyle label(
     double size, {
     Color color = AppColors.textPrimary,
-    FontWeight weight = FontWeight.w600,
+    FontWeight weight = FontWeight.w500,
   }) {
-    return GoogleFonts.spaceGrotesk(
+    return GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
-      height: 1.4,
-      letterSpacing: 0.2,
+      height: 1.5,
+      letterSpacing: -0.2,
     );
   }
 
   // Named scale — prefer these for consistent hierarchy.
   static TextStyle displayXL({Color color = AppColors.textPrimary}) =>
-      heading(44, color: color).copyWith(fontWeight: FontWeight.w800, letterSpacing: -1);
+      heading(48, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.5);
   static TextStyle display({Color color = AppColors.textPrimary}) =>
-      heading(34, color: color).copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.8);
+      heading(36, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.2);
   static TextStyle title({Color color = AppColors.textPrimary}) => heading(24, color: color);
   static TextStyle headline({Color color = AppColors.textPrimary}) => heading(18, color: color);
-  static TextStyle body({Color color = AppColors.textPrimary}) => label(15, color: color);
-  static TextStyle caption({Color color = AppColors.whiteMuted}) =>
-      label(13, color: color, weight: FontWeight.w500);
+  static TextStyle body({Color color = AppColors.textPrimary}) => label(16, color: color, weight: FontWeight.w400);
+  static TextStyle caption({Color color = AppColors.textMuted}) =>
+      label(14, color: color, weight: FontWeight.w400);
 
-  /// Uppercase, tracked label for brutalist section headers / eyebrows.
-  static TextStyle overline({Color color = AppColors.whiteMuted}) {
-    return GoogleFonts.spaceGrotesk(
+  /// Uppercase, tracked label for section headers.
+  static TextStyle overline({Color color = AppColors.textMuted}) {
+    return GoogleFonts.inter(
       fontSize: 12,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
       color: color,
       height: 1.2,
-      letterSpacing: 1.6,
+      letterSpacing: 1.0,
     );
   }
 
@@ -153,40 +132,41 @@ class AppTheme {
         surface: AppColors.surface,
         error: AppColors.danger,
       ),
-      textTheme: GoogleFonts.spaceGroteskTextTheme(base.textTheme).apply(
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.background.withOpacity(0.7),
         elevation: 0,
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: AppColors.pitchGreen, size: 28),
-        titleTextStyle: heading(24),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
+        titleTextStyle: heading(20),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surfaceHigh,
-        elevation: 0,
+        elevation: 24,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surfaceHigh,
-        elevation: 0,
+        elevation: 24,
         surfaceTintColor: Colors.transparent,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
         },
       ),
-      splashColor: AppColors.pitchGreen.withValues(alpha: 0.15),
+      splashColor: AppColors.pitchGreen.withOpacity(0.1),
       highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
     );
   }
 }

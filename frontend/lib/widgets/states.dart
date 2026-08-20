@@ -4,6 +4,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'animations.dart';
 
+import 'package:flutter_animate/flutter_animate.dart';
+
 /// A centred loading indicator with optional caption — the single, consistent
 /// loading treatment used across screens.
 class LoadingState extends StatelessWidget {
@@ -19,20 +21,25 @@ class LoadingState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(
-              width: 30,
-              height: 30,
+              width: 36,
+              height: 36,
               child: CircularProgressIndicator(
                 color: AppColors.pitchGreen,
-                strokeWidth: 3,
+                strokeWidth: 2.5,
               ),
-            ),
+            )
+            .animate(onPlay: (controller) => controller.repeat())
+            .shimmer(duration: 1200.ms, color: AppColors.whiteSoft)
+            .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.05, 1.05), duration: 800.ms, curve: Curves.easeInOutSine)
+            .then()
+            .scale(begin: const Offset(1.05, 1.05), end: const Offset(0.95, 0.95), duration: 800.ms, curve: Curves.easeInOutSine),
             if (message != null) ...[
               AppSpacing.gapLg,
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: AppTheme.caption(),
-              ),
+                style: AppTheme.overline(), // More elegant uppercase spacing
+              ).animate().fade(duration: 500.ms).slideY(begin: 0.2, end: 0),
             ],
           ],
         ),

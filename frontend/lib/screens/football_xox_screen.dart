@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../data/player.dart';
@@ -8,8 +9,8 @@ import '../game/xox/xox_game.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animations.dart';
-import '../widgets/brutalist_button.dart';
-import '../widgets/brutalist_card.dart';
+import '../widgets/premium_button.dart';
+import '../widgets/premium_card.dart';
 import '../widgets/factor_image.dart';
 import '../widgets/states.dart';
 
@@ -274,10 +275,9 @@ class _StatusBar extends StatelessWidget {
       color = _markColor(game.current);
     }
 
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surface,
       borderColor: color,
-      shadowOffset: const Offset(4, 4),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       child: Row(
@@ -305,7 +305,7 @@ class _StatusBar extends StatelessWidget {
             child: Text(text, style: AppTheme.headline(color: color)),
           ),
           if (!game.isOver)
-            BrutalistButton(
+            PremiumButton(
               onPressed: onPass,
               expand: false,
               color: AppColors.surfaceLow,
@@ -336,7 +336,7 @@ class _ResultBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final won = game.winner != Mark.none;
     final color = won ? _markColor(game.winner) : AppColors.whiteMuted;
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surface,
       borderColor: color,
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -351,7 +351,7 @@ class _ResultBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          BrutalistButton(
+          PremiumButton(
             onPressed: onPlayAgain,
             expand: false,
             padding: const EdgeInsets.symmetric(
@@ -371,10 +371,9 @@ class _HeaderCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistCard(
-      color: AppColors.pitchGreen,
-      borderColor: AppColors.black,
-      shadowOffset: const Offset(3, 3),
+    return PremiumCard(
+      color: AppColors.surfaceHigh,
+      borderColor: AppColors.border,
       radius: 12,
       padding: const EdgeInsets.all(6),
       alignment: Alignment.center,
@@ -408,10 +407,9 @@ class _GridCell extends StatelessWidget {
       onLongPress: onLongPress,
       child: SuccessPop(
         trigger: filled ? cell.player?.id : null,
-        child: BrutalistCard(
+        child: PremiumCard(
           color: filled ? AppColors.surface : AppColors.surfaceLow,
           borderColor: filled ? markColor : AppColors.border,
-          shadowOffset: const Offset(3, 3),
           radius: 12,
           padding: const EdgeInsets.all(AppSpacing.xs),
           alignment: Alignment.center,
@@ -500,12 +498,14 @@ class _AnswersDialogState extends State<_AnswersDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: BrutalistCard(
-        color: AppColors.surfaceHigh,
-        borderColor: AppColors.pitchGreen,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        height: size.height * 0.7,
-        child: Column(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: PremiumCard(
+          color: AppColors.surfaceHigh.withOpacity(0.8),
+          borderColor: AppColors.pitchGreen.withOpacity(0.5),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          height: size.height * 0.7,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
@@ -564,10 +564,10 @@ class _AnswersDialogState extends State<_AnswersDialog> {
                         return FadeSlideIn(
                           delay: Duration(milliseconds: 20 * (i % 20)),
                           duration: AppTheme.durMed,
-                          child: BrutalistCard(
+                          child: PremiumCard(
                             color: AppColors.surfaceLow,
                             borderColor: AppColors.border,
-                            shadowOffset: Offset.zero,
+
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.lg,
                               vertical: AppSpacing.md,
@@ -579,7 +579,7 @@ class _AnswersDialogState extends State<_AnswersDialog> {
                     ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            BrutalistButton(
+            PremiumButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('KAPAT'),
             ),

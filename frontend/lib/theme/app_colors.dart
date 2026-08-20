@@ -1,48 +1,54 @@
 import 'package:flutter/material.dart';
 
-/// Centralised colour palette for the Flyball neo-brutalist design system.
+/// Centralised colour palette for the Premium "Anti-Slop" design system.
 ///
-/// Deep charcoal backgrounds, a single vibrant "Pitch Green" accent and sharp
-/// white text. Shadows are solid (no blur) to achieve the hard, blocky look.
+/// Features deep, sophisticated midnight tones, smooth glassmorphic whites,
+/// and subtle accent glows instead of harsh solids.
 class AppColors {
   AppColors._();
 
-  /// Primary app background — deep charcoal / near-black.
-  static const Color background = Color(0xFF121212);
+  /// Primary app background — deep midnight, almost black but with depth.
+  static const Color background = Color(0xFF09090B);
 
-  /// Slightly raised surface for cards and sheets.
-  static const Color surface = Color(0xFF1C1C1C);
+  /// Standard surface for cards — slightly elevated.
+  static const Color surface = Color(0xFF141416);
 
-  /// An elevated surface tier for layering above cards (sheets, dialogs).
-  static const Color surfaceHigh = Color(0xFF242424);
+  /// Elevated surface for dialogs and prominent cards.
+  static const Color surfaceHigh = Color(0xFF1D1D21);
 
-  /// A darker surface used for inset / empty states.
-  static const Color surfaceLow = Color(0xFF0A0A0A);
+  /// Recessed surface for inputs or empty states.
+  static const Color surfaceLow = Color(0xFF050505);
 
-  /// Vibrant neon "Pitch Green" accent.
-  static const Color pitchGreen = Color(0xFF39FF14);
+  /// Vibrant, elegant accent. A premium, glowing emerald instead of neon.
+  static const Color pitchGreen = Color(0xFF22C55E);
 
-  /// A dimmer green for secondary accents / disabled states.
-  static const Color pitchGreenDim = Color(0xFF1F8A0C);
+  /// Dimmed accent for secondary states.
+  static const Color pitchGreenDim = Color(0xFF166534);
 
-  /// A faint green tint for focus rings, hovers and soft fills.
-  static const Color pitchGreenSoft = Color(0x1F39FF14);
+  /// Faint, beautiful glow for active states or focus rings.
+  static const Color pitchGreenSoft = Color(0x1F22C55E);
 
-  /// Quiet outline / divider colour — for edges that shouldn't shout.
-  static const Color border = Color(0xFF2E2E2E);
+  /// Subtle, barely-there border for separating surfaces cleanly.
+  static const Color border = Color(0xFF27272A);
+  
+  /// Slightly more prominent border for active components.
+  static const Color borderHigh = Color(0xFF3F3F46);
 
-  /// Primary text colour — softened off-white for comfortable reading.
-  static const Color textPrimary = Color(0xFFF5F5F5);
+  /// Primary text colour — pure white.
+  static const Color textPrimary = Color(0xFFFFFFFF);
 
-  /// Sharp white reserved for true high-contrast accents and borders.
+  /// Muted text colour for secondary information.
+  static const Color textMuted = Color(0xFFA1A1AA);
+
+  /// Pure white for high-contrast icons.
   static const Color white = Color(0xFFFFFFFF);
 
-  /// Muted white for secondary text.
-  static const Color whiteMuted = Color(0xFFB5B5B5);
+  /// A translucent white perfect for glassmorphic highlights.
+  static const Color whiteSoft = Color(0x1AFFFFFF);
 
-  /// Pure black, used for hard shadows and thick borders.
+  /// Pure black for deep shadows.
   static const Color black = Color(0xFF000000);
 
-  /// Warning / error red used sparingly (e.g. network errors).
-  static const Color danger = Color(0xFFFF3B3B);
+  /// Elegant crimson for destructive actions or errors.
+  static const Color danger = Color(0xFFEF4444);
 }

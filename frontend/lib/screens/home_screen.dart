@@ -4,7 +4,7 @@ import '../routing/app_routes.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animations.dart';
-import '../widgets/brutalist_button.dart';
+import '../widgets/premium_button.dart';
 import '../widgets/flyball_logo.dart';
 
 /// The landing screen: the Flyball brand mark and the three game buttons.
@@ -79,9 +79,6 @@ class HomeScreen extends StatelessWidget {
       _GameButton(
         label: 'FOOTBALL XOX',
         icon: Icons.grid_3x3_rounded,
-        color: AppColors.surface,
-        foregroundColor: AppColors.white,
-        borderColor: AppColors.pitchGreen,
         onPressed: () async {
           final result = await Navigator.of(context)
               .pushNamed(AppRoutes.footballXoxLobby);
@@ -95,19 +92,12 @@ class HomeScreen extends StatelessWidget {
       _GameButton(
         label: '2 TEAM 1 PLAYER',
         icon: Icons.people_alt_rounded,
-        color: AppColors.surface,
-        foregroundColor: AppColors.white,
-        borderColor: AppColors.pitchGreen,
         onPressed: () =>
             Navigator.of(context).pushNamed(AppRoutes.twoTeamOnePlayer),
       ),
-
       _GameButton(
         label: '1 TEAM 1 COUNTRY',
         icon: Icons.public_rounded,
-        color: AppColors.surface,
-        foregroundColor: AppColors.white,
-        borderColor: AppColors.pitchGreen,
         onPressed: () =>
             Navigator.of(context).pushNamed(AppRoutes.oneTeamOneCountry),
       ),
@@ -127,15 +117,15 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// A massive blocky home button with an icon and label.
+/// A premium, bouncy home button with an icon and label.
 class _GameButton extends StatelessWidget {
   const _GameButton({
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.color = AppColors.pitchGreen,
-    this.foregroundColor = AppColors.black,
-    this.borderColor = AppColors.black,
+    this.color = AppColors.surfaceHigh,
+    this.foregroundColor = AppColors.textPrimary,
+    this.borderColor = AppColors.border,
   });
 
   final String label;
@@ -147,7 +137,7 @@ class _GameButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistButton(
+    return PremiumButton(
       onPressed: onPressed,
       color: color,
       foregroundColor: foregroundColor,

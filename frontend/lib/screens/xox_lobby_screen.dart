@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animations.dart';
-import '../widgets/brutalist_button.dart';
-import '../widgets/brutalist_card.dart';
+import '../widgets/premium_button.dart';
+import '../widgets/premium_card.dart';
 
 /// Pre-game lobby for Football XOX: both players enter their names, and
 /// X / O marks are assigned randomly. Returns a [XoxLobbyResult] to the
@@ -161,7 +161,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
           // Start button
           FadeSlideIn(
             delay: const Duration(milliseconds: 340),
-            child: BrutalistButton(
+            child: PremiumButton(
               onPressed: _onStart,
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
@@ -250,7 +250,7 @@ class _NameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surface,
       borderColor: AppColors.border,
       padding: const EdgeInsets.symmetric(
@@ -295,10 +295,9 @@ class _AssignmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistCard(
+    return PremiumCard(
       color: AppColors.surface,
-      borderColor: color,
-      shadowOffset: const Offset(5, 5),
+      borderColor: color.withOpacity(0.3),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
       child: Row(
@@ -311,7 +310,7 @@ class _AssignmentChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              border: Border.all(color: color, width: 3),
+              border: Border.all(color: color.withOpacity(0.5), width: 1.5),
             ),
             child: Text(
               mark,

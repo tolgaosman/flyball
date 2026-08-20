@@ -16,7 +16,7 @@ class FactorImage extends StatelessWidget {
     super.key,
     required this.factor,
     this.imageSize = 44,
-    this.textColor = AppColors.black,
+    this.textColor = AppColors.textPrimary,
   });
 
   final Factor factor;
@@ -24,8 +24,7 @@ class FactorImage extends StatelessWidget {
   /// Target edge length for the image (it is scaled to fit within this).
   final double imageSize;
 
-  /// Colour for the text fallback (headers sit on pitch-green, so default
-  /// black). Trophies/flags ignore this.
+  /// Colour for the text fallback.
   final Color textColor;
 
   @override
@@ -51,7 +50,7 @@ class FactorImage extends StatelessWidget {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.black,
+                    color: AppColors.whiteSoft,
                   ),
                 ),
               );

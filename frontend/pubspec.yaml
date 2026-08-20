@@ -31,7 +31,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Geometric sans-serif font (Space Grotesk) for the neo-brutalist UI.
+  # High-performance micro-animations and spring physics
+  flutter_animate: ^4.5.0
+
+  # Modern sleek fonts for premium UI
   google_fonts: ^6.2.1
 
   # HTTP client for API-Football player search.

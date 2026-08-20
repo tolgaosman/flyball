@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -11,8 +12,8 @@ import '../game/xox/factor_art.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animations.dart';
-import '../widgets/brutalist_button.dart';
-import '../widgets/brutalist_card.dart';
+import '../widgets/premium_button.dart';
+import '../widgets/premium_card.dart';
 import '../widgets/states.dart';
 
 /// **2 Team 1 Player** — a two-player party quiz.
@@ -263,12 +264,12 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       // ── Action buttons ──
-                      BrutalistButton(
+                      PremiumButton(
                         onPressed: _spinning ? null : _spin,
                         child: const Text('YENİ TAKIMLAR'),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      BrutalistButton(
+                      PremiumButton(
                         onPressed: _spinning ? null : _showAnswers,
                         color: AppColors.surface,
                         foregroundColor: AppColors.white,
@@ -298,11 +299,11 @@ class _TeamSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asset = FactorArtResolver.teamLogoAsset(team);
-    return BrutalistCard(
+    return PremiumCard(
       borderColor: spinning ? AppColors.pitchGreen : AppColors.border,
       soft: !spinning,
       shadowColor: AppColors.pitchGreen,
-      shadowOffset: spinning ? const Offset(5, 5) : AppTheme.shadowOffset,
+
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.lg),
       child: Column(
@@ -365,7 +366,7 @@ class _ScorePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalistCard(
+    return PremiumCard(
       borderColor: AppColors.border,
       soft: true,
       padding: const EdgeInsets.symmetric(
@@ -404,7 +405,7 @@ class _ScorePanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: BrutalistButton(
+                child: PremiumButton(
                   onPressed: onDecrement,
                   color: AppColors.surfaceLow,
                   foregroundColor: AppColors.white,
@@ -416,7 +417,7 @@ class _ScorePanel extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: BrutalistButton(
+                child: PremiumButton(
                   onPressed: onIncrement,
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   restingOffset: const Offset(3, 3),
@@ -496,12 +497,14 @@ class _AnswersDialogState extends State<_AnswersDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: BrutalistCard(
-        color: AppColors.surfaceHigh,
-        borderColor: AppColors.pitchGreen,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        height: size.height * 0.7,
-        child: Column(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: PremiumCard(
+          color: AppColors.surfaceHigh.withOpacity(0.8),
+          borderColor: AppColors.pitchGreen.withOpacity(0.5),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          height: size.height * 0.7,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
@@ -565,10 +568,10 @@ class _AnswersDialogState extends State<_AnswersDialog> {
                             return FadeSlideIn(
                               delay: Duration(milliseconds: 30 * i),
                               duration: AppTheme.durMed,
-                              child: BrutalistCard(
+                              child: PremiumCard(
                                 color: AppColors.surfaceLow,
                                 borderColor: AppColors.border,
-                                shadowOffset: Offset.zero,
+
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.lg,
                                   vertical: AppSpacing.md,
@@ -580,7 +583,7 @@ class _AnswersDialogState extends State<_AnswersDialog> {
                         ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            BrutalistButton(
+            PremiumButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('KAPAT'),
             ),

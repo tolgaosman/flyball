@@ -1,43 +1,48 @@
-/// App-wide runtime configuration.
-///
-/// Player data is sourced from a self-hosted Transfermarkt API whose base URL
-/// is read from a compile-time environment value (see [transfermarktBaseUrl]).
+/// How the app reaches the AI answer/board engine.
+enum AiMode {
+  /// Talk to the Flyball backend, which holds the Gemini key server-side.
+  backend,
+
+  /// Call Gemini directly from the app with a compiled-in key. Simpler to set
+  /// up (no server to run) but the key is extractable from the app binary —
+  /// fine for personal/local use, not recommended for a public release.
+  direct,
+
+  /// Neither is configured — the app has no way to answer anything.
+  none,
+}
+
+/// App-wide runtime configuration, read from compile-time `--dart-define`
+/// values (see `dart_define.example.json`).
 class AppConfig {
   AppConfig._();
 
-  /// Base URL of the self-hosted Transfermarkt API
-  /// (https://github.com/felipeall/transfermarkt-api), the primary source for
-  /// player nationality, clubs and trophies. Run it locally with
-  /// `docker run -p 8000:8000 transfermarkt-api`, then provide the URL via:
+  /// Base URL of the Flyball backend (holds the Gemini key server-side).
+  /// Takes priority over [geminiApiKey] when both are set.
   ///
   /// ```
-  /// flutter run --dart-define=TRANSFERMARKT_BASE_URL=http://10.0.2.2:8000
+  /// flutter run --dart-define=API_BASE_URL=http://192.168.1.23:8080
+  /// # From an Android emulator, reach the host with 10.0.2.2:
+  /// flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
   /// ```
-  ///
-  /// (Use `10.0.2.2` from an Android emulator to reach the host's localhost.)
-  static const String transfermarktBaseUrl = String.fromEnvironment(
-    'TRANSFERMARKT_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  /// A Gemini API key compiled directly into the app (get one free at
+  /// https://aistudio.google.com/apikey). Used only when [apiBaseUrl] is
+  /// empty. NOT secret-safe — see [AiMode.direct].
+  static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+
+  /// Gemini model id, only used in [AiMode.direct].
+  static const String geminiModel = String.fromEnvironment(
+    'GEMINI_MODEL',
+    defaultValue: 'gemini-2.5-flash',
   );
 
-  /// Base URL of the **answer-search proxy** used by [AnswerSearchService] to
-  /// fetch live reference answers for the party games.
-  ///
-  /// This is NOT a secret — it is a public HTTPS endpoint that holds the Gemini
-  /// API key server-side, so the key is never compiled into the app binary (where
-  /// it could be extracted with `strings`). Provide it via:
-  ///
-  /// ```
-  /// flutter run --dart-define=PROXY_BASE_URL=https://your-proxy.example.com
-  /// ```
-  ///
-  /// When empty (no proxy configured), the party games fall back to the offline
-  /// local corpus.
-  static const String proxyBaseUrl = String.fromEnvironment(
-    'PROXY_BASE_URL',
-    defaultValue: '',
-  );
+  static AiMode get aiMode {
+    if (apiBaseUrl.isNotEmpty) return AiMode.backend;
+    if (geminiApiKey.isNotEmpty) return AiMode.direct;
+    return AiMode.none;
+  }
 
-  /// Whether an answer-search proxy is configured.
-  static bool get hasAnswerProxy => proxyBaseUrl.isNotEmpty;
+  static bool get hasAi => aiMode != AiMode.none;
 }

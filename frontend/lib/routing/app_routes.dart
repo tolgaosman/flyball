@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../screens/football_xox_screen.dart';
 import '../screens/footballdle_screen.dart';
 import '../screens/home_screen.dart';
+import '../screens/login_screen.dart';
 import '../screens/one_team_one_country_screen.dart';
+import '../screens/signup_screen.dart';
 import '../screens/two_team_one_player_screen.dart';
 import '../screens/xox_lobby_screen.dart';
 
@@ -17,6 +19,8 @@ class AppRoutes {
   static const String footballdle = '/footballdle';
   static const String oneTeamOneCountry = '/one-team-one-country';
   static const String twoTeamOnePlayer = '/two-team-one-player';
+  static const String login = '/login';
+  static const String signup = '/signup';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -37,6 +41,10 @@ class AppRoutes {
         return _build(const OneTeamOneCountryScreen());
       case twoTeamOnePlayer:
         return _build(const TwoTeamOnePlayerScreen());
+      case login:
+        return _build(const LoginScreen());
+      case signup:
+        return _build(const SignupScreen());
       case home:
       default:
         return _build(const HomeScreen());

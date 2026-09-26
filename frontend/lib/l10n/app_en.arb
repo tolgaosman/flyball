@@ -1,0 +1,127 @@
+{
+  "@@locale": "en",
+
+  "close": "Close",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+
+  "homeTagline": "Football trivia, played together",
+  "playFootballXox": "FOOTBALL XOX",
+  "playTwoTeamOnePlayer": "2 TEAM 1 PLAYER",
+  "playOneTeamOneCountry": "1 TEAM 1 COUNTRY",
+  "playFootballdle": "FOOTBALLDLE",
+  "comingSoonBadge": "SOON",
+  "languageToggleTooltip": "Switch language",
+
+  "comingSoonTitle": "COMING SOON",
+  "comingSoonMessage": "This game mode is still in the workshop.",
+
+  "aiNotConfiguredTitle": "AI NOT CONFIGURED",
+  "aiNotConfiguredMessage": "Flyball needs an AI connection to play — every answer comes from a live search, there's no offline player list. Run with --dart-define-from-file=dart_define.json after filling in API_BASE_URL or GEMINI_API_KEY.",
+  "aiUnavailableTitle": "AI UNAVAILABLE",
+  "aiUnavailableMessage": "Couldn't reach the AI. Check your connection and try again.",
+
+  "lobbyTitle": "FOOTBALL XOX",
+  "lobbyPlayerXLabel": "Player X",
+  "lobbyPlayerOLabel": "Player O",
+  "lobbyNameHint": "Enter a name",
+  "lobbyNameRequired": "Please enter a name",
+  "lobbyNamesMustDiffer": "Players need different names",
+  "lobbyStart": "START MATCH",
+  "lobbyRandomAssignHint": "X and O are assigned at random when you start",
+
+  "xoxTitle": "FOOTBALL XOX",
+  "xoxNewGameTooltip": "New game",
+  "xoxBuildingBoard": "BUILDING YOUR BOARD",
+  "xoxTurn": "Turn: {name}",
+  "@xoxTurn": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "xoxWins": "{name} WINS!",
+  "@xoxWins": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "xoxDraw": "IT'S A DRAW",
+  "xoxPass": "PASS",
+  "xoxCompletedLine": "{name} completed a line!",
+  "@xoxCompletedLine": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "xoxNoMoreMoves": "No more moves — nobody got a line.",
+  "xoxPlayAgain": "PLAY AGAIN",
+  "xoxBoardUnavailableTitle": "COULDN'T BUILD A BOARD",
+
+  "answersSearching": "SEARCHING…",
+  "answersCount": "{count, plural, one{1 PLAYER} other{{count} PLAYERS}}",
+  "@answersCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "answersUnverifiedWarning": "⚠ UNVERIFIED — NOT DOUBLE-CHECKED",
+  "answersSearchHint": "SEARCH PLAYERS…",
+  "answersNoneFound": "NO MATCHING PLAYERS",
+  "answersSearchFailedTitle": "SEARCH FAILED",
+  "answersSearchFailedMessage": "Couldn't reach the AI for this one.",
+
+  "partyNewTeams": "NEW TEAMS",
+  "partyNewRound": "NEW ROUND",
+  "partyAnswers": "ANSWERS",
+  "partyPlayer1Default": "Player 1",
+  "partyPlayer2Default": "Player 2",
+  "partyEditNameTitle": "NAME",
+  "partyRoundUnavailableTitle": "COULDN'T FIND A ROUND",
+
+  "twoTeamOnePlayerTitle": "2 TEAM 1 PLAYER",
+  "oneTeamOneCountryTitle": "1 TEAM 1 COUNTRY",
+
+  "authSignInTitle": "SIGN IN",
+  "authSignUpTitle": "CREATE ACCOUNT",
+  "authSignInHeadline": "Welcome back",
+  "authSignInSubtitle": "Sign in to your Flyball account.",
+  "authSignUpHeadline": "Join Flyball",
+  "authSignUpSubtitle": "Pick a username and a password — that's all it takes.",
+  "authSignInButton": "SIGN IN",
+  "authSignUpButton": "CREATE ACCOUNT",
+  "authUsernameLabel": "Username",
+  "authPasswordLabel": "Password",
+  "authConfirmPasswordLabel": "Confirm password",
+  "authDisplayNameLabel": "Your name (optional)",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authNoAccount": "No account yet?",
+  "authGoToSignUp": "Sign up",
+  "authHaveAccount": "Already have an account?",
+  "authGoToSignIn": "Sign in",
+  "authUsernameRequired": "Enter your username",
+  "authPasswordRequired": "Enter your password",
+  "authInvalidUsername": "{min}–{max} characters: letters, numbers, _ or .",
+  "@authInvalidUsername": {
+    "placeholders": { "min": { "type": "int" }, "max": { "type": "int" } }
+  },
+  "authWeakPassword": "At least {min} characters",
+  "@authWeakPassword": {
+    "placeholders": { "min": { "type": "int" } }
+  },
+  "authPasswordsDontMatch": "Passwords don't match",
+  "authDisplayNameTooLong": "At most {max} characters",
+  "@authDisplayNameTooLong": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "authUsernameTaken": "That username is already taken",
+  "authInvalidCredentials": "Wrong username or password",
+  "authTooManyAttempts": "Too many attempts — try again in a few minutes",
+  "authNetworkError": "Couldn't reach the server. Check your connection and try again.",
+  "authUnknownError": "Something went wrong. Please try again.",
+  "authUnavailableTitle": "ACCOUNTS UNAVAILABLE",
+  "authUnavailableMessage": "Accounts live on the Flyball backend. Run the app with API_BASE_URL set in dart_define.json.",
+  "authAccountButton": "SIGN IN",
+  "authSignedInAs": "Signed in as @{username}",
+  "@authSignedInAs": {
+    "placeholders": { "username": { "type": "String" } }
+  },
+  "authSignOut": "SIGN OUT",
+  "authWelcome": "Welcome, {name}!",
+  "@authWelcome": {
+    "placeholders": { "name": { "type": "String" } }
+  }
+}

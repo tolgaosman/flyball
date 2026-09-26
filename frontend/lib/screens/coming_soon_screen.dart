@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../widgets/states.dart';
 
@@ -16,13 +17,14 @@ class ComingSoonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(title.toUpperCase())),
       body: EmptyState(
         icon: icon,
         iconColor: AppColors.pitchGreen,
-        title: 'COMING SOON',
-        message: "We're lacing up the boots for this one.\nCheck back soon.",
+        title: l10n.comingSoonTitle,
+        message: l10n.comingSoonMessage,
       ),
     );
   }

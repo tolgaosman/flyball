@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/text_utils.dart';
 import '../widgets/animations.dart';
 import '../widgets/premium_button.dart';
 import '../widgets/premium_card.dart';
@@ -84,8 +86,9 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('FOOTBALL XOX')),
+      appBar: AppBar(title: Text(l10n.lobbyTitle)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -93,7 +96,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
               horizontal: AppSpacing.xl,
               vertical: AppSpacing.xl,
             ),
-            child: _flipping ? _buildFlipResult() : _buildForm(),
+            child: _flipping ? _buildFlipResult(l10n, context) : _buildForm(l10n),
           ),
         ),
       ),
@@ -102,7 +105,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
 
   // ---- Name entry form -----------------------------------------------------
 
-  Widget _buildForm() {
+  Widget _buildForm(AppLocalizations l10n) {
     return Form(
       key: _formKey,
       child: Column(
@@ -117,15 +120,9 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
           ),
           const SizedBox(height: AppSpacing.lg),
           FadeSlideIn(
-            delay: const Duration(milliseconds: 60),
-            child: Text('ENTER PLAYER NAMES',
-                style: AppTheme.headline(color: AppColors.white)),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          FadeSlideIn(
             delay: const Duration(milliseconds: 120),
             child: Text(
-              'X and O will be assigned randomly',
+              l10n.lobbyRandomAssignHint,
               style: AppTheme.caption(),
             ),
           ),
@@ -137,10 +134,13 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
             child: _NameField(
               controller: _player1Controller,
               focusNode: _player1Focus,
-              label: 'PLAYER 1',
+              label: l10n.lobbyPlayerXLabel,
+              hint: l10n.lobbyNameHint,
               icon: Icons.person_rounded,
+              textInputAction: TextInputAction.next,
               onSubmitted: (_) =>
                   FocusScope.of(context).requestFocus(_player2Focus),
+              validator: (value) => _validateName(l10n, value),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -151,9 +151,22 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
             child: _NameField(
               controller: _player2Controller,
               focusNode: _player2Focus,
-              label: 'PLAYER 2',
+              label: l10n.lobbyPlayerOLabel,
+              hint: l10n.lobbyNameHint,
               icon: Icons.person_outline_rounded,
+              // Submitting player 2's name should start the match, not chase
+              // a "next" field that doesn't exist.
+              textInputAction: TextInputAction.done,
               onSubmitted: (_) => _onStart(),
+              validator: (value) {
+                final basic = _validateName(l10n, value);
+                if (basic != null) return basic;
+                if (value!.trim().toLowerCase() ==
+                    _player1Controller.text.trim().toLowerCase()) {
+                  return l10n.lobbyNamesMustDiffer;
+                }
+                return null;
+              },
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -173,7 +186,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
                   const Icon(Icons.play_arrow_rounded, size: 28),
                   const SizedBox(width: AppSpacing.md),
                   Flexible(
-                    child: Text('START MATCH',
+                    child: Text(l10n.lobbyStart,
                         style: AppTheme.heading(22),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
@@ -187,48 +200,38 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
     );
   }
 
+  String? _validateName(AppLocalizations l10n, String? value) {
+    if (value == null || value.trim().isEmpty) return l10n.lobbyNameRequired;
+    return null;
+  }
+
   // ---- Coin-flip reveal ----------------------------------------------------
 
-  Widget _buildFlipResult() {
+  Widget _buildFlipResult(AppLocalizations l10n, BuildContext context) {
     final r = _result!;
+    final locale = Localizations.localeOf(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FadeSlideIn(
+        const FadeSlideIn(
           child: Text('⚡', style: TextStyle(fontSize: 56)),
         ),
         const SizedBox(height: AppSpacing.xl),
         FadeSlideIn(
-          delay: const Duration(milliseconds: 200),
-          child: Text('THE DRAW IS MADE!',
-              style: AppTheme.display(color: AppColors.pitchGreen)),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        FadeSlideIn(
           delay: const Duration(milliseconds: 500),
           child: _AssignmentChip(
-            name: r.playerXName,
+            name: r.playerXName.toUpperCaseFor(locale),
             mark: 'X',
             color: AppColors.pitchGreen,
-            subtitle: 'GOES FIRST',
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
         FadeSlideIn(
           delay: const Duration(milliseconds: 700),
           child: _AssignmentChip(
-            name: r.playerOName,
+            name: r.playerOName.toUpperCaseFor(locale),
             mark: 'O',
             color: AppColors.gold,
-            subtitle: 'GOES SECOND',
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        FadeSlideIn(
-          delay: const Duration(milliseconds: 1000),
-          child: Text(
-            'GET READY...',
-            style: AppTheme.overline(color: AppColors.pitchGreen),
           ),
         ),
       ],
@@ -244,15 +247,21 @@ class _NameField extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.label,
+    required this.hint,
     required this.icon,
+    required this.textInputAction,
     this.onSubmitted,
+    this.validator,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final String label;
+  final String hint;
   final IconData icon;
+  final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final FormFieldValidator<String>? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -265,21 +274,18 @@ class _NameField extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         textCapitalization: TextCapitalization.words,
+        maxLength: 16,
         style: AppTheme.headline(color: AppColors.white),
-        textInputAction: TextInputAction.next,
+        textInputAction: textInputAction,
         onFieldSubmitted: onSubmitted,
         decoration: InputDecoration(
           border: InputBorder.none,
-          hintText: label,
+          counterText: '',
+          hintText: hint,
           hintStyle: AppTheme.headline(color: AppColors.whiteMuted.withValues(alpha: 0.4)),
           icon: Icon(icon, color: AppColors.pitchGreen, size: 28),
         ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Please enter a name';
-          }
-          return null;
-        },
+        validator: validator,
       ),
     );
   }
@@ -291,13 +297,11 @@ class _AssignmentChip extends StatelessWidget {
     required this.name,
     required this.mark,
     required this.color,
-    required this.subtitle,
   });
 
   final String name;
   final String mark;
   final Color color;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -318,25 +322,15 @@ class _AssignmentChip extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
             ),
-            child: Text(
-              mark,
-              style: AppTheme.display(color: color),
-            ),
+            child: Text(mark, style: AppTheme.display(color: color)),
           ),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.headline(color: AppColors.white),
-                ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: AppTheme.overline(color: color)),
-              ],
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.headline(color: AppColors.white),
             ),
           ),
         ],

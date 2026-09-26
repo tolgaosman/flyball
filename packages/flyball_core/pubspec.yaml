@@ -1,0 +1,18 @@
+name: flyball_core
+description: >
+  Shared, pure-Dart game logic for Flyball: the club/country/competition
+  catalogue, XOX factor rules, and the Gemini-backed AI answer/board engine.
+  Used as a path dependency by both `frontend` (Flutter) and `backend` (Dart
+  shelf server) so the two never drift.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  http: ^1.2.2
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.24.0

@@ -1,3 +1,5 @@
 {
-  "PROXY_BASE_URL": "https://your-proxy.example.com"
+  "API_BASE_URL": "http://192.168.1.23:8080",
+  "GEMINI_API_KEY": "",
+  "GEMINI_MODEL": "gemini-2.5-flash"
 }

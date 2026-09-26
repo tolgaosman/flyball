@@ -1,45 +1,49 @@
-import '../../data/player.dart';
-import '../../data/backend_client.dart';
-import 'factor.dart';
+import 'package:flyball_core/flyball_core.dart';
+
+import '../../data/ai/ai_exceptions.dart';
+import '../../data/ai/ai_gateway.dart';
 import 'xox_cell.dart';
 
 /// Immutable-ish controller for a single 2-player Football XOX match.
 ///
-/// Players X and O alternate. Naming a valid footballer for an empty cell
-/// claims it with the current mark. A footballer may be used at most once per
-/// match. The first to complete a line of their mark — any row, any column, or
-/// a main diagonal — wins; a full board with no line is a draw.
+/// Runs in **Game Master Mode**: players alternate, and tapping an empty cell
+/// instantly claims it with the current mark (the two players agree verbally
+/// on a real footballer satisfying that cell's row + column factor — there is
+/// no in-app validation of *which* footballer). The first to complete a line
+/// of their mark — any row, any column, or a main diagonal — wins; a full
+/// board with no line is a draw.
 class XoxGame {
   XoxGame._({
     required this.rows,
     required this.columns,
+    required this.cellExamples,
     required List<XoxCell> cells,
     required this.current,
-    required Set<String> usedPlayerIds,
     required this.winner,
     required this.isDraw,
     required this.playerXName,
     required this.playerOName,
-  })  : _cells = cells, // ignore: prefer_initializing_formals
-        // ignore: prefer_initializing_formals
-        _usedPlayerIds = usedPlayerIds;
+  }) : _cells = cells; // ignore: prefer_initializing_formals
 
-  /// Starts a fresh match by fetching a board from the backend.
+  /// Starts a fresh match by fetching an AI-verified board.
   ///
-  /// [playerXName] and [playerOName] are the display names for the two players.
+  /// Throws [AiUnavailableException] if the AI is unreachable/unconfigured —
+  /// callers must catch this and show an error/retry state, never silently
+  /// show an empty or broken board.
   static Future<XoxGame> createMatch({
+    required AiGateway aiGateway,
     String playerXName = 'Player X',
     String playerOName = 'Player O',
   }) async {
-    // Fetch the board dynamically from our new Dart backend!
-    final board = await BackendClient.fetchBoard();
-    
+    final board = await aiGateway.nextBoard();
+    if (board == null) throw const AiUnavailableException();
+
     return XoxGame._(
       rows: board.rows,
       columns: board.columns,
+      cellExamples: board.cellExamples,
       cells: List<XoxCell>.filled(9, const XoxCell()),
       current: Mark.x,
-      usedPlayerIds: <String>{},
       winner: Mark.none,
       isDraw: false,
       playerXName: playerXName,
@@ -51,15 +55,16 @@ class XoxGame {
   factory XoxGame.testMatch({
     List<Factor> rows = const [],
     List<Factor> columns = const [],
+    List<List<String>>? cellExamples,
     String playerXName = 'Player X',
     String playerOName = 'Player O',
   }) {
     return XoxGame._(
       rows: rows,
       columns: columns,
+      cellExamples: cellExamples ?? List.generate(9, (_) => const []),
       cells: List<XoxCell>.filled(9, const XoxCell()),
       current: Mark.x,
-      usedPlayerIds: <String>{},
       winner: Mark.none,
       isDraw: false,
       playerXName: playerXName,
@@ -69,8 +74,14 @@ class XoxGame {
 
   final List<Factor> rows;
   final List<Factor> columns;
+
+  /// Example players confirmed (by the AI board builder) to satisfy each
+  /// cell — indexed `row * 3 + col`. An instant preview for the long-press
+  /// reveal; the authoritative list is always re-fetched fresh via
+  /// [AiGateway.searchFactors].
+  final List<List<String>> cellExamples;
+
   final List<XoxCell> _cells;
-  final Set<String> _usedPlayerIds;
 
   /// Display name of the X player.
   final String playerXName;
@@ -95,28 +106,24 @@ class XoxGame {
 
   List<XoxCell> get cells => List.unmodifiable(_cells);
 
-  /// Ids of footballers already used this match (cannot be reused).
-  Set<String> get usedPlayerIds => Set.unmodifiable(_usedPlayerIds);
-
   bool get isOver => winner != Mark.none || isDraw;
 
   int get filledCount => _cells.where((c) => c.isFilled).length;
 
   XoxCell cellAt(int row, int col) => _cells[row * 3 + col];
 
-  /// Returns a new game state with [player] claiming the cell at (row, col) for
-  /// the [current] mark, advancing the turn and recomputing win/draw. The
-  /// caller is responsible for only passing valid (factor-satisfying, unused)
-  /// players — selection is blocked at search. If the cell is occupied or the
-  /// game is over, returns `this` unchanged.
-  XoxGame claimCell(int row, int col, Player player) {
+  List<String> examplesAt(int row, int col) => cellExamples[row * 3 + col];
+
+  /// Returns a new game state with the current mark claiming the cell at
+  /// (row, col), advancing the turn and recomputing win/draw. If the cell is
+  /// occupied or the game is over, returns `this` unchanged.
+  XoxGame claimCell(int row, int col) {
     final index = row * 3 + col;
     if (isOver || _cells[index].isFilled) return this;
 
     final newCells = List<XoxCell>.of(_cells);
-    newCells[index] = newCells[index].claim(current, player);
+    newCells[index] = newCells[index].claim(current);
 
-    final newUsed = {..._usedPlayerIds, player.id};
     final newWinner = _findWinner(newCells);
     final boardFull = newCells.every((c) => c.isFilled);
     final draw = newWinner == Mark.none && boardFull;
@@ -129,9 +136,9 @@ class XoxGame {
     return XoxGame._(
       rows: rows,
       columns: columns,
+      cellExamples: cellExamples,
       cells: newCells,
       current: nextMark,
-      usedPlayerIds: newUsed,
       winner: newWinner,
       isDraw: draw,
       playerXName: playerXName,
@@ -139,16 +146,16 @@ class XoxGame {
     );
   }
 
-  /// Passes the turn to the other player without claiming a cell (used when the
-  /// current player gives up on their search). No-op once the game is over.
+  /// Passes the turn to the other player without claiming a cell (used when
+  /// no valid move can be found verbally). No-op once the game is over.
   XoxGame passTurn() {
     if (isOver) return this;
     return XoxGame._(
       rows: rows,
       columns: columns,
+      cellExamples: cellExamples,
       cells: _cells,
       current: current == Mark.x ? Mark.o : Mark.x,
-      usedPlayerIds: _usedPlayerIds,
       winner: winner,
       isDraw: isDraw,
       playerXName: playerXName,

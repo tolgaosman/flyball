@@ -1,5 +1,8 @@
 name: backend
-description: A server app using the shelf package and routing.
+description: >
+  Flyball's backend: holds the Gemini API key server-side, answers AI player
+  searches and board/round requests for the frontend, and caches results in
+  SQLite so repeat questions are instant and don't re-spend Gemini quota.
 version: 1.0.0
 publish_to: none
 
@@ -7,14 +10,16 @@ environment:
   sdk: ^3.1.0
 
 dependencies:
+  flyball_core:
+    path: ../packages/flyball_core
   args: ^2.4.2
   shelf: ^1.4.1
   shelf_router: ^1.1.4
+  shelf_cors_headers: ^0.1.5
   http: ^1.2.2
+  crypto: ^3.0.3
   sqflite_common_ffi: ^2.3.4
   path: ^1.9.0
-  # For cross-origin requests if needed
-  shelf_cors_headers: ^0.1.5
 
 dev_dependencies:
   lints: ^3.0.0

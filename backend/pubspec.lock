@@ -82,7 +82,7 @@ packages:
     source: hosted
     version: "1.15.1"
   crypto:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
@@ -105,6 +105,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  flyball_core:
+    dependency: "direct main"
+    description:
+      path: "../packages/flyball_core"
+      relative: true
+    source: path
+    version: "1.0.0"
   frontend_server_client:
     dependency: transitive
     description:

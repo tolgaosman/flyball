@@ -1,15 +1,19 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flyball_core/flyball_core.dart';
 
-import '../data/answer_search_service.dart';
-import '../data/player.dart';
-import '../data/player_database.dart';
-import '../game/xox/factor.dart';
+import '../config/app_config.dart';
+import '../data/ai/ai_exceptions.dart';
+import '../data/ai/ai_gateway.dart';
+import '../data/ai/ai_gateway_factory.dart';
 import '../game/xox/xox_cell.dart';
 import '../game/xox/xox_game.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/text_utils.dart';
+import '../widgets/ai_state_views.dart';
 import '../widgets/animations.dart';
+import '../widgets/answers_sheet.dart';
 import '../widgets/premium_button.dart';
 import '../widgets/premium_card.dart';
 import '../widgets/factor_image.dart';
@@ -17,11 +21,12 @@ import '../widgets/states.dart';
 
 /// Football XOX: a two-player (X vs O) tic-tac-toe over a 3x3 trivia grid.
 ///
-/// Each row and column has a random, unique [Factor], and the board is always
-/// fully solvable. Players alternate; naming a footballer who satisfies a
-/// cell's row AND column factor claims it with the current mark. A footballer
-/// may be used once per match. First to complete a row, column, or diagonal of
-/// their mark wins; a full board with no line is a draw.
+/// Runs in **Game Master Mode**: each row/column has a random, AI-verified
+/// [Factor]. Tapping an empty cell instantly claims it for whoever's turn it
+/// is (the two players agree verbally on a real footballer satisfying that
+/// cell) — long-pressing reveals the AI's answer list for that cell instead.
+/// First to complete a row, column, or diagonal of their mark wins; a full
+/// board with no line is a draw.
 class FootballXoxScreen extends StatefulWidget {
   const FootballXoxScreen({
     super.key,
@@ -29,10 +34,7 @@ class FootballXoxScreen extends StatefulWidget {
     this.playerOName = 'Player O',
   });
 
-  /// Display name for the player assigned X.
   final String playerXName;
-
-  /// Display name for the player assigned O.
   final String playerOName;
 
   @override
@@ -40,123 +42,94 @@ class FootballXoxScreen extends StatefulWidget {
 }
 
 class _FootballXoxScreenState extends State<FootballXoxScreen> {
-  late XoxGame _game;
+  late final AiGateway _aiGateway = createAiGateway();
+
+  XoxGame? _game;
   int _matchId = 0;
-
-  /// The full player corpus, loaded once from the DB and reused for every new
-  /// match so board solvability is validated against real data.
-  List<Player> _corpus = const [];
-
-  /// True while the database is being opened and the corpus loaded. The board
-  /// is only built once this is false, so [_game] is always set by then.
   bool _loading = true;
+  bool _errored = false;
 
-  /// Fetches live, current-season reference answers for a reveal; falls back
-  /// to the static on-device corpus when unavailable.
-  final AnswerSearchService _answerSearch = AnswerSearchService();
-
-  void _onCellTapped(int row, int col) {
-    if (_game.isOver || _game.cellAt(row, col).isFilled) return;
-
-    // Game Master mode: instantly claim the cell for the current player
-    // without opening the search dialog.
-    final dummyPlayer = Player(
-      id: 'claim_${row}_$col',
-      name: _game.currentPlayerName,
-      nationality: '',
-    );
-
-    setState(() => _game = _game.claimCell(row, col, dummyPlayer));
-  }
-
-  void _onCellLongPressed(int row, int col) {
-    final rowFactor = _game.rows[row];
-    final colFactor = _game.columns[col];
-
-    // Static on-device corpus serves as the offline fallback for the live,
-    // current-season-aware search below.
-    final fallback = _corpus
-        .where((p) => rowFactor.matches(p) && colFactor.matches(p))
-        .map((p) => p.name)
-        .toList()
-      ..sort();
-
-    showDialog(
-      context: context,
-      builder: (context) => _AnswersDialog(
-        rowFactor: rowFactor,
-        colFactor: colFactor,
-        search: _answerSearch.search(
-          condition1: rowFactor.label,
-          condition2: colFactor.label,
-          localCorpus: fallback,
-        ),
-        fallback: fallback,
-      ),
-    );
-  }
+  /// Guards against a slower stale `_load`/`_newGame` call overwriting a
+  /// newer one's result (e.g. mashing the refresh button).
+  int _requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (AppConfig.hasAi) _load();
   }
 
-  /// Opens the player database, loads the corpus and starts the first match.
-  /// The corpus is fed to board generation so every cell has a real answer.
-  ///
-  /// If the database can't be opened (e.g. asset unavailable in a test), it
-  /// falls back to an empty corpus — the board generator handles this via its
-  /// own internal fallback logic.
-  Future<void> _load() async {
-    List<Player> corpus;
-    try {
-      corpus = await PlayerDatabase.instance.loadAllPlayers();
-      debugPrint('[XOX] Loaded ${corpus.length} players');
-    } catch (e) {
-      debugPrint('[XOX] DB load failed: $e');
-      corpus = const [];
-    }
-    
-    final game = await XoxGame.createMatch(
-      playerXName: widget.playerXName,
-      playerOName: widget.playerOName,
+  void _onCellTapped(int row, int col) {
+    final game = _game;
+    if (game == null || game.isOver || game.cellAt(row, col).isFilled) return;
+    setState(() => _game = game.claimCell(row, col));
+  }
+
+  void _onCellLongPressed(int row, int col) {
+    final game = _game;
+    if (game == null) return;
+    final rowFactor = game.rows[row];
+    final colFactor = game.columns[col];
+
+    showAiAnswersSheet(
+      context,
+      header: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FactorImage(factor: rowFactor, imageSize: 42),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Text('×', style: TextStyle(color: AppColors.whiteMuted, fontSize: 24, fontWeight: FontWeight.bold)),
+          ),
+          FactorImage(factor: colFactor, imageSize: 42),
+        ],
+      ),
+      preview: game.examplesAt(row, col),
+      fetch: () => _aiGateway.searchFactors(rowFactor.label, colFactor.label),
     );
-    
-    if (!mounted) return;
-    setState(() {
-      _corpus = corpus;
-      _game = game;
-      _matchId++;
-      _loading = false;
-    });
   }
 
-  Future<void> _newGame() async {
+  Future<void> _load() => _startMatch(showFullLoading: true);
+
+  Future<void> _newGame() => _startMatch(showFullLoading: false);
+
+  Future<void> _startMatch({required bool showFullLoading}) async {
+    final requestId = ++_requestId;
     setState(() => _loading = true);
-    final game = await XoxGame.createMatch(
-      playerXName: widget.playerXName,
-      playerOName: widget.playerOName,
-    );
-    if (!mounted) return;
+    XoxGame? game;
+    var errored = false;
+    try {
+      game = await XoxGame.createMatch(
+        aiGateway: _aiGateway,
+        playerXName: widget.playerXName,
+        playerOName: widget.playerOName,
+      );
+    } on AiUnavailableException {
+      errored = true;
+    }
+    if (!mounted || requestId != _requestId) return; // a newer request won.
     setState(() {
-      _game = game;
-      _matchId++;
       _loading = false;
+      _errored = errored;
+      if (game != null) {
+        _game = game;
+        _matchId++;
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FOOTBALL XOX'),
+        title: Text(l10n.xoxTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
-              tooltip: 'New game',
-              onPressed: _newGame,
+              tooltip: l10n.xoxNewGameTooltip,
+              onPressed: _loading ? null : _newGame,
               icon: const Icon(Icons.refresh_rounded),
             ),
           ),
@@ -165,41 +138,50 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: _buildBody(),
+          child: _buildBody(l10n),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_loading) {
-      return const LoadingState(message: 'BUILDING YOUR BOARD');
+  Widget _buildBody(AppLocalizations l10n) {
+    if (!AppConfig.hasAi) return const AiNotConfiguredView();
+    if (_loading) return LoadingState(message: l10n.xoxBuildingBoard);
+    if (_errored || _game == null) {
+      return ErrorState(
+        title: l10n.xoxBoardUnavailableTitle,
+        message: l10n.aiUnavailableMessage,
+        action: PremiumButton(
+          onPressed: _load,
+          expand: false,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+          child: Text(l10n.retry),
+        ),
+      );
     }
+
+    final game = _game!;
     return Column(
       children: [
-        _StatusBar(
-          game: _game,
-          onPass: () => setState(() => _game = _game.passTurn()),
-        ),
+        _StatusBar(game: game, onPass: () => setState(() => _game = game.passTurn())),
         const SizedBox(height: AppSpacing.lg),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return Center(
                 child: FadeSlideIn(
-                  // Re-key per match so the entrance replays on "New game".
                   key: ValueKey(_matchId),
-                  child: _buildBoard(constraints),
+                  child: _buildBoard(constraints, game),
                 ),
               );
             },
           ),
         ),
-        if (_game.isOver) ...[
+        if (game.isOver) ...[
           const SizedBox(height: AppSpacing.md),
           FadeSlideIn(
             key: ValueKey('result-$_matchId'),
-            child: _ResultBanner(game: _game, onPlayAgain: _newGame),
+            child: _ResultBanner(game: game, onPlayAgain: _newGame),
           ),
         ],
       ],
@@ -207,32 +189,35 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
   }
 
   /// Builds the 4x4 visual layout: an empty corner + 3 column headers on top,
-  /// 3 row headers down the left, and the 3x3 grid. Scales to fit.
-  Widget _buildBoard(BoxConstraints constraints) {
+  /// 3 row headers down the left, and the 3x3 grid. Scales to fit, and sizes
+  /// header art / cell text off the actual cell size rather than a fixed
+  /// constant, so small cells (e.g. landscape) never overflow.
+  Widget _buildBoard(BoxConstraints constraints, XoxGame game) {
     final side = constraints.biggest.shortestSide.clamp(0.0, 560.0);
     const spacing = 8.0;
+    final cellSize = side / 4;
+    final imageSize = (cellSize * 0.5).clamp(24.0, 48.0);
+    final markFontSize = (cellSize * 0.32).clamp(16.0, 32.0);
 
     return SizedBox(
       width: side,
       height: side,
       child: Column(
         children: [
-          // --- Header row: empty corner + 3 column factors. ---
           Expanded(
             child: Row(
               children: [
                 const Expanded(child: SizedBox.shrink()),
-                for (final col in _game.columns)
+                for (final col in game.columns)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(spacing / 2),
-                      child: _HeaderCell(factor: col),
+                      child: _HeaderCell(factor: col, imageSize: imageSize),
                     ),
                   ),
               ],
             ),
           ),
-          // --- Three body rows: row factor + 3 cells each. ---
           for (int r = 0; r < 3; r++)
             Expanded(
               child: Row(
@@ -240,7 +225,7 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(spacing / 2),
-                      child: _HeaderCell(factor: _game.rows[r]),
+                      child: _HeaderCell(factor: game.rows[r], imageSize: imageSize),
                     ),
                   ),
                   for (int c = 0; c < 3; c++)
@@ -248,9 +233,10 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(spacing / 2),
                         child: _GridCell(
-                          game: _game,
-                          cell: _game.cellAt(r, c),
-                          enabled: !_game.isOver,
+                          game: game,
+                          cell: game.cellAt(r, c),
+                          enabled: !game.isOver,
+                          markFontSize: markFontSize,
                           onTap: () => _onCellTapped(r, c),
                           onLongPress: () => _onCellLongPressed(r, c),
                         ),
@@ -265,10 +251,7 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
   }
 }
 
-/// Colour for a mark (X = pitch green, O = gold).
-Color _markColor(Mark mark) =>
-    mark == Mark.x ? AppColors.playerX : AppColors.playerO;
-
+Color _markColor(Mark mark) => mark == Mark.x ? AppColors.playerX : AppColors.playerO;
 String _markLabel(Mark mark) => mark == Mark.x ? 'X' : 'O';
 
 /// Turn indicator / score header.
@@ -279,27 +262,27 @@ class _StatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
     final String text;
     final Color color;
     if (game.winner != Mark.none) {
-      text = '${game.nameOf(game.winner).toUpperCase()} WINS!';
+      text = l10n.xoxWins(game.nameOf(game.winner).toUpperCaseFor(locale));
       color = _markColor(game.winner);
     } else if (game.isDraw) {
-      text = "IT'S A DRAW";
+      text = l10n.xoxDraw;
       color = AppColors.whiteMuted;
     } else {
-      text = "${game.currentPlayerName.toUpperCase()}'S TURN";
+      text = l10n.xoxTurn(game.currentPlayerName);
       color = _markColor(game.current);
     }
 
     return PremiumCard(
       color: AppColors.surface,
       borderColor: color,
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       child: Row(
         children: [
-          // Turn token chip.
           SuccessPop(
             trigger: '${game.current}-${game.isOver}',
             child: Container(
@@ -319,7 +302,12 @@ class _StatusBar extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(text, style: AppTheme.headline(color: color)),
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.headline(color: color),
+            ),
           ),
           if (!game.isOver)
             PremiumButton(
@@ -328,15 +316,11 @@ class _StatusBar extends StatelessWidget {
               color: AppColors.surfaceLow,
               foregroundColor: AppColors.white,
               borderColor: AppColors.border,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-              child: const Text('PAS'),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+              child: Text(l10n.xoxPass),
             )
           else
-            Text(
-              '${game.filledCount}/9',
-              style: AppTheme.caption(),
-            ),
+            Text('${game.filledCount}/9', style: AppTheme.caption()),
         ],
       ),
     );
@@ -351,6 +335,7 @@ class _ResultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final won = game.winner != Mark.none;
     final color = won ? _markColor(game.winner) : AppColors.whiteMuted;
     return PremiumCard(
@@ -361,9 +346,9 @@ class _ResultBanner extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              won
-                  ? '${game.nameOf(game.winner)} completed a line!'
-                  : 'No more moves — nobody got a line.',
+              won ? l10n.xoxCompletedLine(game.nameOf(game.winner)) : l10n.xoxNoMoreMoves,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTheme.body(),
             ),
           ),
@@ -371,9 +356,8 @@ class _ResultBanner extends StatelessWidget {
           PremiumButton(
             onPressed: onPlayAgain,
             expand: false,
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-            child: const Text('PLAY AGAIN'),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            child: Text(l10n.xoxPlayAgain),
           ),
         ],
       ),
@@ -383,8 +367,9 @@ class _ResultBanner extends StatelessWidget {
 
 /// A row/column header showing its factor image (icon-only, text fallback).
 class _HeaderCell extends StatelessWidget {
-  const _HeaderCell({required this.factor});
+  const _HeaderCell({required this.factor, required this.imageSize});
   final Factor factor;
+  final double imageSize;
 
   @override
   Widget build(BuildContext context) {
@@ -394,7 +379,7 @@ class _HeaderCell extends StatelessWidget {
       radius: 12,
       padding: const EdgeInsets.all(6),
       alignment: Alignment.center,
-      child: FactorImage(factor: factor, imageSize: 42),
+      child: FactorImage(factor: factor, imageSize: imageSize),
     );
   }
 }
@@ -405,12 +390,14 @@ class _GridCell extends StatelessWidget {
     required this.game,
     required this.cell,
     required this.enabled,
+    required this.markFontSize,
     required this.onTap,
     required this.onLongPress,
   });
   final XoxGame game;
   final XoxCell cell;
   final bool enabled;
+  final double markFontSize;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -423,14 +410,14 @@ class _GridCell extends StatelessWidget {
       onTap: (filled || !enabled) ? null : onTap,
       onLongPress: onLongPress,
       child: SuccessPop(
-        trigger: filled ? cell.player?.id : null,
+        trigger: filled ? '${cell.mark}' : null,
         child: PremiumCard(
           color: filled ? AppColors.surface : AppColors.surfaceLow,
           borderColor: filled ? markColor : AppColors.border,
           radius: 12,
           padding: const EdgeInsets.all(AppSpacing.xs),
           alignment: Alignment.center,
-          child: filled ? _claimedContent(cell) : _emptyContent(),
+          child: filled ? _claimedContent(context, cell) : _emptyContent(),
         ),
       ),
     );
@@ -440,210 +427,14 @@ class _GridCell extends StatelessWidget {
     return const Icon(Icons.add_rounded, color: AppColors.whiteMuted, size: 28);
   }
 
-  Widget _claimedContent(XoxCell cell) {
+  Widget _claimedContent(BuildContext context, XoxCell cell) {
     final markColor = _markColor(cell.mark);
-    final playerName = game.nameOf(cell.mark);
     final markLabel = _markLabel(cell.mark);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: SizedBox(
-              width: 110,
-              child: Text(
-                playerName,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: AppTheme.label(
-                  14,
-                  color: AppColors.white,
-                  weight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          markLabel,
-          style: AppTheme.heading(
-            32,
-            color: markColor,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// A dialog listing valid players for the given [rowFactor] and [colFactor].
-///
-/// While [search] is in flight it shows a loading state, then renders the live,
-/// current-season-aware LLM names; if the search yields `null` (no proxy
-/// configured, no network, timeout, or an unparseable response) it falls back
-/// to the on-device [fallback] names computed from the static corpus.
-class _AnswersDialog extends StatefulWidget {
-  const _AnswersDialog({
-    required this.rowFactor,
-    required this.colFactor,
-    required this.search,
-    required this.fallback,
-  });
-
-  final Factor rowFactor;
-  final Factor colFactor;
-  final Future<AnswerResult?> search;
-  final List<String> fallback;
-
-  @override
-  State<_AnswersDialog> createState() => _AnswersDialogState();
-}
-
-class _AnswersDialogState extends State<_AnswersDialog> {
-  bool _loading = true;
-  late List<String> _names;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  /// Whether the shown list was fact-checked. The local [fallback] corpus is
-  /// trusted, so it counts as verified; only an unverified live result is false.
-  bool _verified = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _names = widget.fallback;
-    _resolve();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _resolve() async {
-    final live = await widget.search;
-    if (!mounted) return;
-    setState(() {
-      _names = live?.players ?? widget.fallback;
-      _verified = live?.verified ?? true;
-      _loading = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final filteredNames = _names
-        .where((n) => n.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: PremiumCard(
-          color: AppColors.surfaceHigh.withValues(alpha: 0.8),
-          borderColor: AppColors.pitchGreen.withValues(alpha: 0.5),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          height: size.height * 0.7,
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FactorImage(factor: widget.rowFactor, imageSize: 42),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: Text('×', style: TextStyle(color: AppColors.whiteMuted, fontSize: 24, fontWeight: FontWeight.bold)),
-                ),
-                FactorImage(factor: widget.colFactor, imageSize: 42),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _loading ? 'ARANIYOR…' : '${_names.length} OYUNCU',
-              textAlign: TextAlign.center,
-              style: AppTheme.overline(color: AppColors.pitchGreen),
-            ),
-            if (!_loading && _names.isNotEmpty && !_verified) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '⚠ DOĞRULANMADI — KONTROL EDİLMEDİ',
-                textAlign: TextAlign.center,
-                style: AppTheme.overline(color: AppColors.danger),
-              ),
-            ],
-            if (!_loading && _names.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _searchQuery = val),
-                style: AppTheme.label(14),
-                cursorColor: AppColors.pitchGreen,
-                decoration: InputDecoration(
-                  hintText: 'OYUNCU ARA...',
-                  hintStyle: AppTheme.label(14, color: AppColors.whiteMuted),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.whiteMuted, size: 20),
-                  filled: true,
-                  fillColor: AppColors.surfaceLow,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radius),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radius),
-                    borderSide: const BorderSide(color: AppColors.pitchGreen, width: 2),
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            Expanded(
-              child: _loading
-                  ? const LoadingState(message: 'ARANIYOR…')
-                  : filteredNames.isEmpty
-                  ? const EmptyState(
-                      icon: Icons.search_off_rounded,
-                      title: 'EŞLEŞEN OYUNCU YOK',
-                    )
-                  : ListView.separated(
-                      itemCount: filteredNames.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, i) {
-                        return FadeSlideIn(
-                          delay: Duration(milliseconds: 20 * (i % 20)),
-                          duration: AppTheme.durMed,
-                          child: PremiumCard(
-                            color: AppColors.surfaceLow,
-                            borderColor: AppColors.border,
-
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.md,
-                            ),
-                            child: Text(filteredNames[i], style: AppTheme.body()),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            PremiumButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('KAPAT'),
-            ),
-          ],
-        ),
-      ),
-      ),
+    // Scale the whole claimed mark down together on very small cells (e.g.
+    // landscape) instead of overflowing.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(markLabel, style: AppTheme.heading(markFontSize, color: markColor)),
     );
   }
 }

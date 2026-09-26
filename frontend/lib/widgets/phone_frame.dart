@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -21,8 +22,11 @@ class PhoneFrame extends StatelessWidget {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    // If screen is narrow (mobile device size), render the app directly without frame.
-    if (screenWidth <= 600) {
+    // Only simulate a phone chrome on web (a desktop browser window). On
+    // native platforms a wide/short surface is a real device — a tablet, a
+    // landscape phone, a foldable — and deserves its own real layout, not a
+    // fake phone-in-a-phone.
+    if (!kIsWeb || screenWidth <= 600) {
       return child;
     }
 
@@ -32,8 +36,13 @@ class PhoneFrame extends StatelessWidget {
     const double borderRadius = 44.0;
     const double borderWidth = 10.0;
 
-    // Handle vertical scaling for shorter displays
-    final double targetHeight = phoneHeight + 60.0; // App height + padding
+    // Handle vertical scaling for shorter browser windows. Budgets in the
+    // surrounding chrome too (header chip + row gap + footer info card +
+    // the 24px page padding on every side) — omitting it let the phone body
+    // get clamped to a height that still didn't leave room for the footer,
+    // squashing the simulated screen shorter than its declared MediaQuery.
+    const double chromeHeight = 24 * 2 + 40 + 16 + 56;
+    final double targetHeight = phoneHeight + chromeHeight;
     final double scale = screenHeight < targetHeight
         ? (screenHeight / targetHeight) * 0.95
         : 1.0;
@@ -42,13 +51,16 @@ class PhoneFrame extends StatelessWidget {
     const double innerWidth = phoneWidth - (2 * borderWidth);
     const double innerHeight = phoneHeight - (2 * borderWidth);
 
-    // Override the child's MediaQuery so it behaves exactly like a real mobile screen size.
+    // Override the child's MediaQuery so it behaves exactly like a real mobile
+    // screen size — but keep forwarding the REAL viewInsets (on-screen
+    // keyboard), so text fields and sheets inside still resize/scroll out
+    // from under it instead of being covered.
     final mediaQueryData = MediaQuery.of(context);
     final simulatedMediaQuery = mediaQueryData.copyWith(
       size: const Size(innerWidth, innerHeight),
       padding: const EdgeInsets.only(top: 44, bottom: 34),
       viewPadding: const EdgeInsets.only(top: 44, bottom: 34),
-      viewInsets: EdgeInsets.zero,
+      viewInsets: mediaQueryData.viewInsets,
     );
 
     final Widget phoneBody = Container(

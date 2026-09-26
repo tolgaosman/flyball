@@ -1,27 +1,31 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flyball_core/flyball_core.dart';
 
-import '../data/answer_search_service.dart';
-import '../data/player.dart';
-import '../data/player_database.dart';
-import '../game/two_team/two_team_game.dart';
-import '../game/xox/factor_art.dart';
+import '../data/ai/ai_gateway.dart';
+import '../data/ai/ai_gateway_factory.dart';
+import '../config/app_config.dart';
+import '../game/party/round_queue.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_state_views.dart';
 import '../widgets/animations.dart';
+import '../widgets/answers_sheet.dart';
+import '../widgets/dynamic_art.dart';
+import '../widgets/party_widgets.dart';
 import '../widgets/premium_button.dart';
-import '../widgets/premium_card.dart';
 import '../widgets/states.dart';
 
 /// **2 Team 1 Player** — a two-player party quiz.
 ///
-/// Tapping "New Teams" spins two slot boxes that land on a random pair of clubs
-/// (always one with a shared player). Players then name footballers who turned
-/// out for BOTH clubs; the "Answers" button reveals the full list. A manual
-/// scoreboard tracks the two players.
+/// Tapping "New Teams" spins two slot boxes that land on a random pair of
+/// clubs AI-confirmed to share at least one real footballer. Players then
+/// name footballers who turned out for BOTH clubs; "Answers" reveals the
+/// full, already-verified list instantly. A manual scoreboard tracks the two
+/// players.
 class TwoTeamOnePlayerScreen extends StatefulWidget {
   const TwoTeamOnePlayerScreen({super.key});
 
@@ -31,55 +35,45 @@ class TwoTeamOnePlayerScreen extends StatefulWidget {
 
 class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
   final Random _rng = Random();
+  late final AiGateway _aiGateway = createAiGateway();
+  late final RoundQueue _queue = RoundQueue(aiGateway: _aiGateway, kind: RoundKind.twoTeam);
 
-  /// The game logic, built once the player corpus is loaded.
-  late TwoTeamGame _game;
+  Round? _round;
   bool _loading = true;
+  bool _errored = false;
 
-  /// Fetches live reference answers; falls back to the local corpus.
-  final AnswerSearchService _answerSearch = AnswerSearchService();
-
-  /// The settled club pair.
-  late String _teamA;
-  late String _teamB;
-
-  /// The (possibly mid-spin) club shown in each box.
-  late String _displayA;
-  late String _displayB;
-
+  String _displayA = '';
+  String _displayB = '';
   bool _spinning = false;
   Timer? _spinTimer;
 
-  String _p1Name = 'Oyuncu 1';
-  String _p2Name = 'Oyuncu 2';
+  String _p1Name = '';
+  String _p2Name = '';
   int _p1Score = 0;
   int _p2Score = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (AppConfig.hasAi) _load();
   }
 
-  /// Loads the player corpus from the on-device database, builds the game and
-  /// settles the first pair. Falls back to an empty corpus on DB failure.
   Future<void> _load() async {
-    List<Player> corpus;
-    try {
-      corpus = await PlayerDatabase.instance.loadAllPlayers();
-      debugPrint('[2T1P] Loaded ${corpus.length} players');
-    } catch (e) {
-      debugPrint('[2T1P] DB load failed: $e');
-      corpus = const [];
-    }
-    if (!mounted) return;
-    final game = TwoTeamGame(corpus);
-    final pair = game.randomPair(_rng);
     setState(() {
-      _game = game;
-      _teamA = _displayA = pair.teamA;
-      _teamB = _displayB = pair.teamB;
+      _loading = true;
+      _errored = false;
+    });
+    final round = await _queue.next();
+    if (!mounted) return;
+    setState(() {
       _loading = false;
+      if (round == null) {
+        _errored = true;
+      } else {
+        _round = round;
+        _displayA = round.conditionA;
+        _displayB = round.conditionB;
+      }
     });
   }
 
@@ -91,10 +85,9 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
 
   void _spin() {
     if (_spinning) return;
-    final pool = TwoTeamGame.teams;
+    final pool = ClubCatalog.names;
     setState(() => _spinning = true);
 
-    // Rapidly flash random clubs in both boxes for the slot effect.
     _spinTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
       setState(() {
         _displayA = pool[_rng.nextInt(pool.length)];
@@ -102,489 +95,172 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
       });
     });
 
-    // Land on a real (answer-guaranteed) pair after ~2 seconds.
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
+    Future.delayed(const Duration(seconds: 2), () async {
+      final round = await _queue.next();
       _spinTimer?.cancel();
-      final pair = _game.randomPair(_rng);
+      if (!mounted) return;
       setState(() {
-        _teamA = _displayA = pair.teamA;
-        _teamB = _displayB = pair.teamB;
         _spinning = false;
+        if (round == null) {
+          _errored = true;
+        } else {
+          _errored = false;
+          _round = round;
+          _displayA = round.conditionA;
+          _displayB = round.conditionB;
+        }
       });
     });
   }
 
   Future<void> _editName(bool isPlayerOne) async {
-    final controller = TextEditingController(
-      text: isPlayerOne ? _p1Name : _p2Name,
-    );
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radius),
-          side: const BorderSide(
-              color: AppColors.pitchGreen, width: AppTheme.borderWidth),
-        ),
-        title: Text('İSİM', style: AppTheme.title()),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: AppTheme.label(16),
-          cursorColor: AppColors.pitchGreen,
-          decoration: InputDecoration(
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.whiteMuted),
-            ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.pitchGreen, width: 2),
-            ),
-          ),
-          onSubmitted: (v) => Navigator.of(context).pop(v),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('İPTAL', style: AppTheme.label(14, color: AppColors.whiteMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: Text('KAYDET', style: AppTheme.label(14, color: AppColors.pitchGreen)),
-          ),
-        ],
-      ),
-    );
-    if (result == null) return;
-    final trimmed = result.trim();
-    if (trimmed.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final current = isPlayerOne
+        ? (_p1Name.isEmpty ? l10n.partyPlayer1Default : _p1Name)
+        : (_p2Name.isEmpty ? l10n.partyPlayer2Default : _p2Name);
+    final result = await showEditNameDialog(context, initial: current);
+    if (result == null || !mounted) return;
     setState(() {
       if (isPlayerOne) {
-        _p1Name = trimmed;
+        _p1Name = result;
       } else {
-        _p2Name = trimmed;
+        _p2Name = result;
       }
     });
   }
 
   void _showAnswers() {
-    if (_spinning) return;
-    // Local corpus answers serve as the offline fallback for the live search.
-    final fallback =
-        _game.sharedPlayers(_teamA, _teamB).map((p) => p.name).toList();
-    showDialog<void>(
-      context: context,
-      builder: (context) => _AnswersDialog(
-        teamA: _teamA,
-        teamB: _teamB,
-        search: _answerSearch.search(
-          condition1: _teamA,
-          condition2: _teamB,
-          localCorpus: fallback,
-        ),
-        fallback: fallback,
-      ),
+    final round = _round;
+    if (_spinning || round == null) return;
+    showPartyAnswersSheet(
+      context,
+      header: _Header(teamA: round.conditionA, teamB: round.conditionB),
+      answers: round.answers,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('2 TEAM 1 PLAYER')),
+      appBar: AppBar(title: Text(l10n.twoTeamOnePlayerTitle)),
       body: SafeArea(
-        child: _loading
-            ? const LoadingState()
-            : LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSpacing.sm),
-                      // ── Slot boxes ──
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: SuccessPop(
-                                trigger: _spinning ? null : _teamA,
-                                child: _TeamSlot(
-                                    team: _displayA, spinning: _spinning),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: SuccessPop(
-                                trigger: _spinning ? null : _teamB,
-                                child: _TeamSlot(
-                                    team: _displayB, spinning: _spinning),
-                              ),
-                            ),
-                          ],
+        child: !AppConfig.hasAi
+            ? const AiNotConfiguredView()
+            : _loading
+                ? const LoadingState()
+                : _errored
+                    ? AiUnavailableView(onRetry: _load)
+                    : _buildBody(l10n),
+      ),
+    );
+  }
+
+  Widget _buildBody(AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.sm),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: SuccessPop(
+                            trigger: _spinning ? null : _displayA,
+                            child: SlotCard(name: _displayA, spinning: _spinning, isCountry: false),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      // ── Scoreboard ──
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: _ScorePanel(
-                                name: _p1Name,
-                                score: _p1Score,
-                                onEditName: () => _editName(true),
-                                onIncrement: () => setState(() => _p1Score++),
-                                onDecrement: () =>
-                                    setState(() => _p1Score = max(0, _p1Score - 1)),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: _ScorePanel(
-                                name: _p2Name,
-                                score: _p2Score,
-                                onEditName: () => _editName(false),
-                                onIncrement: () => setState(() => _p2Score++),
-                                onDecrement: () =>
-                                    setState(() => _p2Score = max(0, _p2Score - 1)),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: SuccessPop(
+                            trigger: _spinning ? null : _displayB,
+                            child: SlotCard(name: _displayB, spinning: _spinning, isCountry: false),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      // ── Action buttons ──
-                      PremiumButton(
-                        onPressed: _spinning ? null : _spin,
-                        child: const Text('YENİ TAKIMLAR'),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      PremiumButton(
-                        onPressed: _spinning ? null : _showAnswers,
-                        color: AppColors.surface,
-                        foregroundColor: AppColors.white,
-                        borderColor: AppColors.pitchGreen,
-                        child: const Text('CEVAPLAR'),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// A single slot box showing a club logo (or its name) above the club name.
-class _TeamSlot extends StatelessWidget {
-  const _TeamSlot({required this.team, required this.spinning});
-
-  final String team;
-  final bool spinning;
-
-  @override
-  Widget build(BuildContext context) {
-    final asset = FactorArtResolver.teamLogoAsset(team);
-    return PremiumCard(
-      borderColor: spinning ? AppColors.pitchGreen : AppColors.border,
-      soft: !spinning,
-      shadowColor: AppColors.pitchGreen,
-
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.lg),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: 84,
-            child: Center(
-              child: asset != null
-                  ? Image.asset(
-                      asset,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => _logoFallback(team),
-                    )
-                  : _logoFallback(team),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            team,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.headline(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _logoFallback(String team) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          team,
-          textAlign: TextAlign.center,
-          style: AppTheme.heading(20, color: AppColors.pitchGreen),
-        ),
-      ),
-    );
-  }
-}
-
-/// A scoreboard column for one player: editable name, score, and +/- buttons.
-class _ScorePanel extends StatelessWidget {
-  const _ScorePanel({
-    required this.name,
-    required this.score,
-    required this.onEditName,
-    required this.onIncrement,
-    required this.onDecrement,
-  });
-
-  final String name;
-  final int score;
-  final VoidCallback onEditName;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      borderColor: AppColors.border,
-      soft: true,
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.lg),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: onEditName,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.caption(),
+                  const SizedBox(height: AppSpacing.xl),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: ScorePanel(
+                            name: _p1Name.isEmpty ? l10n.partyPlayer1Default : _p1Name,
+                            score: _p1Score,
+                            onEditName: () => _editName(true),
+                            onIncrement: () => setState(() => _p1Score++),
+                            onDecrement: () => setState(() => _p1Score = max(0, _p1Score - 1)),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: ScorePanel(
+                            name: _p2Name.isEmpty ? l10n.partyPlayer2Default : _p2Name,
+                            score: _p2Score,
+                            onEditName: () => _editName(false),
+                            onIncrement: () => setState(() => _p2Score++),
+                            onDecrement: () => setState(() => _p2Score = max(0, _p2Score - 1)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                const Icon(Icons.edit, size: 14, color: AppColors.whiteMuted),
-              ],
+                  const SizedBox(height: AppSpacing.xxl),
+                  PremiumButton(
+                    onPressed: _spinning ? null : _spin,
+                    child: Text(l10n.partyNewTeams),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  PremiumButton(
+                    onPressed: (_spinning || _round == null) ? null : _showAnswers,
+                    color: AppColors.surface,
+                    foregroundColor: AppColors.white,
+                    borderColor: AppColors.pitchGreen,
+                    child: Text(l10n.partyAnswers),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          SuccessPop(
-            trigger: score,
-            child: Text(
-              '$score',
-              style: AppTheme.heading(44, color: AppColors.pitchGreen),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: PremiumButton(
-                  onPressed: onDecrement,
-                  color: AppColors.surfaceLow,
-                  foregroundColor: AppColors.white,
-                  borderColor: AppColors.border,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: const Text('−'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: PremiumButton(
-                  onPressed: onIncrement,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: const Text('+'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-/// A scrollable popup listing footballers who played for both clubs.
-///
-/// While [search] is in flight it shows a loading state, then renders the live
-/// LLM names; if the search yields `null` (no key / network / parse failure) it
-/// falls back to the on-device [fallback] names.
-class _AnswersDialog extends StatefulWidget {
-  const _AnswersDialog({
-    required this.teamA,
-    required this.teamB,
-    required this.search,
-    required this.fallback,
-  });
-
+class _Header extends StatelessWidget {
+  const _Header({required this.teamA, required this.teamB});
   final String teamA;
   final String teamB;
-  final Future<AnswerResult?> search;
-  final List<String> fallback;
-
-  @override
-  State<_AnswersDialog> createState() => _AnswersDialogState();
-}
-
-class _AnswersDialogState extends State<_AnswersDialog> {
-  bool _loading = true;
-  late List<String> _names;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  /// Whether the shown list was fact-checked. The local [fallback] corpus is
-  /// trusted, so it counts as verified; only an unverified live result is false.
-  bool _verified = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _names = widget.fallback;
-    _resolve();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _resolve() async {
-    final live = await widget.search;
-    if (!mounted) return;
-    setState(() {
-      _names = live?.players ?? widget.fallback;
-      _verified = live?.verified ?? true;
-      _loading = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final filteredNames = _names
-        .where((n) => n.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: PremiumCard(
-          color: AppColors.surfaceHigh.withValues(alpha: 0.8),
-          borderColor: AppColors.pitchGreen.withValues(alpha: 0.5),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          height: size.height * 0.7,
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '${widget.teamA}  ×  ${widget.teamB}',
-              textAlign: TextAlign.center,
-              style: AppTheme.headline(),
+            ClubLogo(clubName: teamA, size: 42),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Text('×', style: TextStyle(color: AppColors.whiteMuted, fontSize: 24, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              _loading ? 'ARANIYOR…' : '${_names.length} OYUNCU',
-              textAlign: TextAlign.center,
-              style: AppTheme.overline(color: AppColors.pitchGreen),
-            ),
-            if (!_loading && _names.isNotEmpty && !_verified) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '⚠ DOĞRULANMADI — KONTROL EDİLMEDİ',
-                textAlign: TextAlign.center,
-                style: AppTheme.overline(color: AppColors.danger),
-              ),
-            ],
-            if (!_loading && _names.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _searchQuery = val),
-                style: AppTheme.label(14),
-                cursorColor: AppColors.pitchGreen,
-                decoration: InputDecoration(
-                  hintText: 'OYUNCU ARA...',
-                  hintStyle: AppTheme.label(14, color: AppColors.whiteMuted),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.whiteMuted, size: 20),
-                  filled: true,
-                  fillColor: AppColors.surfaceLow,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radius),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radius),
-                    borderSide: const BorderSide(color: AppColors.pitchGreen, width: 2),
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            Expanded(
-              child: _loading
-                  ? const LoadingState(message: 'ARANIYOR…')
-                  : filteredNames.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.search_off_rounded,
-                          title: 'ORTAK OYUNCU YOK',
-                        )
-                      : ListView.separated(
-                          itemCount: filteredNames.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: AppSpacing.sm),
-                          itemBuilder: (context, i) {
-                            return FadeSlideIn(
-                              delay: Duration(milliseconds: 30 * i),
-                              duration: AppTheme.durMed,
-                              child: PremiumCard(
-                                color: AppColors.surfaceLow,
-                                borderColor: AppColors.border,
-
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                  vertical: AppSpacing.md,
-                                ),
-                                child: Text(filteredNames[i], style: AppTheme.body()),
-                              ),
-                            );
-                          },
-                        ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            PremiumButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('KAPAT'),
-            ),
+            ClubLogo(clubName: teamB, size: 42),
           ],
         ),
-      ),
-      ),
+        const SizedBox(height: AppSpacing.sm),
+        Text('$teamA  ×  $teamB', textAlign: TextAlign.center, style: AppTheme.headline()),
+      ],
     );
   }
 }

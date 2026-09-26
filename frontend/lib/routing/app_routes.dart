@@ -8,6 +8,7 @@ import '../screens/one_team_one_country_screen.dart';
 import '../screens/signup_screen.dart';
 import '../screens/two_team_one_player_screen.dart';
 import '../screens/xox_lobby_screen.dart';
+import '../widgets/pitch_backdrop.dart';
 
 /// Named routes and the route generator for Flyball.
 class AppRoutes {
@@ -52,6 +53,8 @@ class AppRoutes {
   }
 
   static MaterialPageRoute<dynamic> _build(Widget child) {
-    return MaterialPageRoute<dynamic>(builder: (_) => child);
+    return MaterialPageRoute<dynamic>(
+      builder: (_) => PitchBackdrop(child: child),
+    );
   }
 }

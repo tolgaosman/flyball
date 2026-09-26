@@ -73,15 +73,15 @@ class HomeScreen extends StatelessWidget {
             ),
             if (sessionController.isAvailable)
               Positioned(
-                top: 0,
-                left: 0,
+                top: AppSpacing.md,
+                left: AppSpacing.lg,
                 child: FadeSlideIn(
                   child: _AccountButton(l10n: l10n),
                 ),
               ),
             Positioned(
-              top: 0,
-              right: 0,
+              top: AppSpacing.md,
+              right: AppSpacing.lg,
               child: FadeSlideIn(
                 child: _LanguageToggle(l10n: l10n),
               ),

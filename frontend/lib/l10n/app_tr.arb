@@ -16,6 +16,12 @@
 
   "comingSoonTitle": "YAKINDA",
   "comingSoonMessage": "Bu oyun modu henüz hazırlanıyor.",
+  "comingSoonBack": "OYUNLARA DÖN",
+
+  "footballdleTagline": "Gizli futbolcuyu 6 tahminde bul — her gün yeni bir bulmaca.",
+  "footballdleFeatureDaily": "Günde bir bulmaca, herkes için aynı",
+  "footballdleFeatureHints": "Her tahmin ülke, kulüp ve mevkiyi ortaya çıkarır",
+  "footballdleFeatureShare": "Cevabı ele vermeden sonucunu paylaş",
 
   "aiNotConfiguredTitle": "YAPAY ZEKA YAPILANDIRILMADI",
   "aiNotConfiguredMessage": "Flyball'ın oynanabilmesi için bir yapay zeka bağlantısı gerekir — her cevap canlı bir aramadan gelir, çevrimdışı bir oyuncu listesi yoktur. API_BASE_URL veya GEMINI_API_KEY doldurulduktan sonra --dart-define-from-file=dart_define.json ile çalıştır.",

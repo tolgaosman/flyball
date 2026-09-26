@@ -146,7 +146,9 @@ class AppTheme {
   static ThemeData get dark {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.background,
+      // Transparent: PitchBackdrop (wrapping every route in AppRoutes) paints
+      // the shared pitch motif behind the Scaffold's own content.
+      scaffoldBackgroundColor: Colors.transparent,
       colorScheme: base.colorScheme.copyWith(
         primary: AppColors.pitchGreen,
         secondary: AppColors.gold,

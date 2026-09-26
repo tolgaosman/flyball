@@ -78,8 +78,20 @@ void main() {
   });
 
   testWidgets('ComingSoonScreen renders without overflowing', (tester) async {
-    await tester.pumpWidget(_wrap(const ComingSoonScreen(title: 'Footballdle', icon: Icons.abc_rounded)));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrap(const ComingSoonScreen(
+      title: 'Footballdle',
+      icon: Icons.abc_rounded,
+      tagline: 'Guess the hidden footballer in 6 tries.',
+      previewWord: 'MESSI',
+      features: [
+        (Icons.calendar_today_rounded, 'One puzzle a day'),
+        (Icons.lightbulb_outline_rounded, 'Guesses reveal hints'),
+      ],
+    )));
+    // Not pumpAndSettle: the hero icon's glow uses a repeating animation
+    // (repeat(reverse: true)) that never settles.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 }

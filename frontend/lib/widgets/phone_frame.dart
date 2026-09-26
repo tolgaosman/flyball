@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 /// A widget that wraps the application in a realistic mobile device frame
-/// when viewed on desktop web or large screens, ensuring a consistent mobile experience.
+/// when viewed on desktop web or large screens, ensuring a consistent mobile
+/// experience.
+///
+/// Rendered in the "Night Pitch" language: a soft-bezel phone floating over a
+/// warm dark backdrop lit by two faint colour glows (pitch green + gold),
+/// matching the in-app surfaces instead of the old brutalist hard-shadow chrome.
 class PhoneFrame extends StatelessWidget {
   final Widget child;
 
@@ -21,8 +29,8 @@ class PhoneFrame extends StatelessWidget {
     // Phone dimensions
     const double phoneWidth = 390.0;
     const double phoneHeight = 844.0;
-    const double borderRadius = 40.0;
-    const double borderWidth = 12.0;
+    const double borderRadius = 44.0;
+    const double borderWidth = 10.0;
 
     // Handle vertical scaling for shorter displays
     final double targetHeight = phoneHeight + 60.0; // App height + padding
@@ -49,20 +57,8 @@ class PhoneFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: AppColors.black, width: borderWidth),
-        boxShadow: const [
-          // Neo-brutalist offset solid shadows
-          BoxShadow(
-            color: AppColors.pitchGreen,
-            offset: Offset(10, 10),
-            blurRadius: 0,
-          ),
-          BoxShadow(
-            color: AppColors.black,
-            offset: Offset(14, 14),
-            blurRadius: 0,
-          ),
-        ],
+        border: Border.all(color: AppColors.borderHigh, width: borderWidth),
+        boxShadow: AppTheme.glowShadow(AppColors.pitchGreen, elevation: 2.2),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius - borderWidth),
@@ -87,13 +83,12 @@ class PhoneFrame extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         '9:41',
-                        style: TextStyle(
+                        style: GoogleFonts.spaceGrotesk(
                           color: AppColors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
-                          fontFamily: 'SpaceGrotesk',
                           letterSpacing: -0.2,
                         ),
                       ),
@@ -170,101 +165,97 @@ class PhoneFrame extends StatelessWidget {
       ),
     );
 
+    // Header/footer chrome is laid out in a Column *around* the phone (not
+    // absolutely positioned over it), so on narrower desktop windows they
+    // stack above/below instead of overlapping the phone body.
     return Scaffold(
       backgroundColor: AppColors.surfaceLow,
       body: Stack(
         children: [
-          // Elegant Neo-Brutalist Dot Grid Canvas Background
-          Positioned.fill(child: CustomPaint(painter: DotGridPainter())),
+          // Warm dark backdrop, softly lit by two faint colour glows instead
+          // of a flat neon dot grid.
+          const Positioned.fill(child: _NightBackdrop()),
 
-          // Header Title Panel
-          Positioned(
-            top: 30,
-            left: 30,
-            child: Row(
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.pitchGreen,
-                    border: Border.all(color: AppColors.black, width: 3),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: AppColors.black,
-                        offset: Offset(4, 4),
-                        blurRadius: 0,
+                // Header title chip
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 16,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
                       ),
-                    ],
-                  ),
-                  child: const Text(
-                    'FLYBALL',
-                    style: TextStyle(
-                      fontFamily: 'SpaceGrotesk',
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.black,
-                      fontSize: 22,
-                      letterSpacing: 1.2,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(
+                          color: AppColors.pitchGreen.withValues(alpha: 0.5),
+                        ),
+                        boxShadow: AppTheme.glowShadow(
+                          AppColors.pitchGreen,
+                          elevation: 0.4,
+                        ),
+                      ),
+                      child: Text(
+                        'FLYBALL',
+                        style:
+                            AppTheme.heading(18, color: AppColors.pitchGreen)
+                                .copyWith(letterSpacing: 1.2),
+                      ),
                     ),
+                    Text(
+                      'Web Simulator',
+                      style: AppTheme.body(color: AppColors.whiteMuted),
+                    ),
+                  ],
+                ),
+
+                // Phone body, centred in the remaining space.
+                Expanded(
+                  child: Center(
+                    child: scale == 1.0
+                        ? phoneBody
+                        : Transform.scale(scale: scale, child: phoneBody),
                   ),
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Web Simulator',
-                  style: TextStyle(
-                    fontFamily: 'SpaceGrotesk',
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
-                    fontSize: 16,
+
+                // bottom instructions info card
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppTheme.softShadow(elevation: 0.6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.devices_rounded,
+                            color: AppColors.pitchGreen, size: 18),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            'Runs in native mobile layouts. Resize the window to test the mobile view directly.',
+                            style: AppTheme.caption(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-
-          // bottom instructions info card
-          Positioned(
-            bottom: 30,
-            left: 30,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.black, width: 2.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.black,
-                    offset: Offset(3, 3),
-                    blurRadius: 0,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.devices, color: AppColors.pitchGreen, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Runs in native mobile layouts. Resize window down to test mobile direct view.',
-                    style: TextStyle(
-                      fontFamily: 'SpaceGrotesk',
-                      color: AppColors.whiteMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Render phone screen body centered
-          Center(
-            child: scale == 1.0
-                ? phoneBody
-                : Transform.scale(scale: scale, child: phoneBody),
           ),
         ],
       ),
@@ -272,19 +263,62 @@ class PhoneFrame extends StatelessWidget {
   }
 }
 
-class DotGridPainter extends CustomPainter {
+/// A warm, dark canvas softly lit by two faint radial colour glows (pitch
+/// green top-left, gold bottom-right) over a faint dot texture.
+class _NightBackdrop extends StatelessWidget {
+  const _NightBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: AppColors.surfaceLow),
+      child: CustomPaint(painter: _NightBackdropPainter()),
+    );
+  }
+}
+
+class _NightBackdropPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.white.withValues(alpha: 0.035)
+    // Faint dot texture.
+    final dotPaint = Paint()
+      ..color = AppColors.white.withValues(alpha: 0.025)
       ..strokeWidth = 2;
-
-    const double spacing = 28.0;
+    const spacing = 28.0;
     for (double x = 0; x < size.width; x += spacing) {
       for (double y = 0; y < size.height; y += spacing) {
-        canvas.drawCircle(Offset(x, y), 1.2, paint);
+        canvas.drawCircle(Offset(x, y), 1.1, dotPaint);
       }
     }
+
+    // Ambient glows.
+    final greenGlow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          AppColors.pitchGreen.withValues(alpha: 0.16),
+          AppColors.pitchGreen.withValues(alpha: 0.0),
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width * 0.12, size.height * 0.08),
+          radius: size.longestSide * 0.5,
+        ),
+      );
+    canvas.drawRect(Offset.zero & size, greenGlow);
+
+    final goldGlow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          AppColors.gold.withValues(alpha: 0.12),
+          AppColors.gold.withValues(alpha: 0.0),
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width * 0.92, size.height * 0.95),
+          radius: size.longestSide * 0.55,
+        ),
+      );
+    canvas.drawRect(Offset.zero & size, goldGlow);
   }
 
   @override

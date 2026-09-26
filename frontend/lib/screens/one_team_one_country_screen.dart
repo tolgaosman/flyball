@@ -192,11 +192,7 @@ class _OneTeamOneCountryScreenState extends State<OneTeamOneCountryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('1 TEAM 1 COUNTRY', style: AppTheme.heading(20)),
-        backgroundColor: AppColors.background,
-        iconTheme: const IconThemeData(color: AppColors.white),
-      ),
+      appBar: AppBar(title: const Text('1 TEAM 1 COUNTRY')),
       body: SafeArea(
         child: _loading
             ? const LoadingState()
@@ -547,8 +543,8 @@ class _AnswersDialogState extends State<_AnswersDialog> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: PremiumCard(
-          color: AppColors.surfaceHigh.withOpacity(0.8),
-          borderColor: AppColors.pitchGreen.withOpacity(0.5),
+          color: AppColors.surfaceHigh.withValues(alpha: 0.8),
+          borderColor: AppColors.pitchGreen.withValues(alpha: 0.5),
           padding: const EdgeInsets.all(AppSpacing.lg),
           height: size.height * 0.7,
           child: Column(
@@ -636,6 +632,7 @@ class _AnswersDialogState extends State<_AnswersDialog> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

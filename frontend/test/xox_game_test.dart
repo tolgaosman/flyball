@@ -10,7 +10,7 @@ Player _player(String id) =>
 void main() {
   group('XoxGame', () {
     test('starts with X to move, empty board, no winner', () {
-      final g = XoxGame.newMatch();
+      final g = XoxGame.testMatch();
       expect(g.current, Mark.x);
       expect(g.filledCount, 0);
       expect(g.winner, Mark.none);
@@ -19,7 +19,7 @@ void main() {
     });
 
     test('claiming a cell alternates turns', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       expect(g.current, Mark.x);
       g = g.claimCell(0, 0, _player('a'));
       expect(g.cellAt(0, 0).mark, Mark.x);
@@ -30,20 +30,20 @@ void main() {
     });
 
     test('passTurn switches player without claiming', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.passTurn();
       expect(g.current, Mark.o);
       expect(g.filledCount, 0);
     });
 
     test('a player id cannot be used twice', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.claimCell(0, 0, _player('dup'));
       expect(g.usedPlayerIds.contains('dup'), isTrue);
     });
 
     test('X wins on the top row', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.claimCell(0, 0, _player('x1')); // X
       g = g.claimCell(1, 0, _player('o1')); // O
       g = g.claimCell(0, 1, _player('x2')); // X
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('O wins on the left column', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.claimCell(0, 1, _player('x1')); // X
       g = g.claimCell(0, 0, _player('o1')); // O
       g = g.claimCell(0, 2, _player('x2')); // X
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('X wins on the TL-M-BR diagonal', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.claimCell(0, 0, _player('x1')); // X
       g = g.claimCell(0, 1, _player('o1')); // O
       g = g.claimCell(1, 1, _player('x2')); // X
@@ -78,7 +78,7 @@ void main() {
     });
 
     test('X wins on the TR-M-BL diagonal', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       g = g.claimCell(0, 2, _player('x1')); // X
       g = g.claimCell(0, 0, _player('o1')); // O
       g = g.claimCell(1, 1, _player('x2')); // X
@@ -88,7 +88,7 @@ void main() {
     });
 
     test('full board with no line is a draw', () {
-      var g = XoxGame.newMatch();
+      var g = XoxGame.testMatch();
       // Fill order producing no three-in-a-row:
       // X O X
       // X X O

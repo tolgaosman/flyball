@@ -5,10 +5,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// A premium, Emil Kowalski inspired button replacing the brutalist one.
+/// The primary "Night Pitch" button.
 ///
 /// Features a gorgeous spring physics scale down on press, soft haptics,
-/// and smooth background color transitions.
+/// a colour glow "lit from within", and smooth background transitions.
 class PremiumButton extends StatefulWidget {
   const PremiumButton({
     super.key,
@@ -84,10 +84,12 @@ class _PremiumButtonState extends State<PremiumButton> {
         decoration: BoxDecoration(
           color: faceColor,
           borderRadius: BorderRadius.circular(widget.radius),
-          border: widget.borderColor != Colors.transparent 
+          border: widget.borderColor != Colors.transparent
               ? Border.all(color: widget.borderColor, width: 1.0)
               : null,
-          boxShadow: _isPressed ? [] : AppTheme.softShadow(elevation: 0.5),
+          boxShadow: !_enabled || _isPressed
+              ? []
+              : AppTheme.glowShadow(widget.color, elevation: 0.5),
         ),
         child: DefaultTextStyle.merge(
           style: AppTheme.heading(16, color: contentColor),

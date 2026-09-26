@@ -23,11 +23,17 @@ class BackendClient {
     // Basic mapping back to Factor
     final typeStr = json['type'] as String;
     FactorType type;
-    if (typeStr.contains('playedLeague')) type = FactorType.playedLeague;
-    else if (typeStr.contains('wonLeague')) type = FactorType.wonLeague;
-    else if (typeStr.contains('wonInternational')) type = FactorType.wonInternational;
-    else if (typeStr.contains('team')) type = FactorType.team;
-    else type = FactorType.nationality;
+    if (typeStr.contains('playedLeague')) {
+      type = FactorType.playedLeague;
+    } else if (typeStr.contains('wonLeague')) {
+      type = FactorType.wonLeague;
+    } else if (typeStr.contains('wonInternational')) {
+      type = FactorType.wonInternational;
+    } else if (typeStr.contains('team')) {
+      type = FactorType.team;
+    } else {
+      type = FactorType.nationality;
+    }
 
     return Factor(
       type: type,

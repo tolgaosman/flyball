@@ -1,12 +1,8 @@
-import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'player.dart';
 import 'player_db_schema.dart';
-// Opens the bundled read-only asset DB. The implementation is platform-specific
-// (file copy on mobile/desktop, IndexedDB VFS import on web) and selected at
-// compile time so `dart:io` never reaches a web build.
-import 'db_asset_io.dart' if (dart.library.js_interop) 'db_asset_web.dart';
+import 'db_asset_io.dart';
 
 /// Opens and reads the on-device player SQLite database.
 ///
@@ -44,13 +40,13 @@ class PlayerDatabase {
       // import on web), selected via the conditional import above.
       final db = await openAssetDatabase();
       _db = db;
-      debugPrint('[PlayerDB] Database opened successfully');
+      print('[PlayerDB] Database opened successfully');
       return db;
     } catch (e) {
       // Clear the cached future so the next call retries instead of returning
       // the same failed future forever.
       _opening = null;
-      debugPrint('[PlayerDB] Failed to open database: $e');
+      print('[PlayerDB] Failed to open database: $e');
       rethrow;
     }
   }
@@ -60,7 +56,7 @@ class PlayerDatabase {
   Future<List<Player>> loadAllPlayers() async {
     final db = await open();
     final rows = await db.query(PlayerDbSchema.tPlayers);
-    debugPrint('[PlayerDB] players table: ${rows.length} rows');
+    print('[PlayerDB] players table: ${rows.length} rows');
 
     final played = await _groupByPlayer(
         db, PlayerDbSchema.tLeaguesPlayed, PlayerDbSchema.cLeague);
@@ -70,7 +66,7 @@ class PlayerDatabase {
         db, PlayerDbSchema.tIntlTitles, PlayerDbSchema.cTournament);
     final teams = await _groupByPlayer(
         db, PlayerDbSchema.tTeams, PlayerDbSchema.cTeam);
-    debugPrint('[PlayerDB] Attribute maps: played=${played.length}, '
+    print('[PlayerDB] Attribute maps: played=${played.length}, '
         'titles=${titles.length}, intl=${intl.length}, teams=${teams.length}');
 
     final result = [
@@ -83,7 +79,7 @@ class PlayerDatabase {
           teams: teams[row[PlayerDbSchema.cId]] ?? const {},
         ),
     ];
-    debugPrint('[PlayerDB] Built ${result.length} Player objects');
+    print('[PlayerDB] Built ${result.length} Player objects');
     return result;
   }
 

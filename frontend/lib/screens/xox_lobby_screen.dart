@@ -163,15 +163,21 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
             delay: const Duration(milliseconds: 340),
             child: PremiumButton(
               onPressed: _onStart,
+              foregroundColor: AppColors.surfaceLow,
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.play_arrow_rounded, size: 28),
                   const SizedBox(width: AppSpacing.md),
-                  Text('START MATCH',
-                      style: AppTheme.heading(22, color: AppColors.black)),
+                  Flexible(
+                    child: Text('START MATCH',
+                        style: AppTheme.heading(22),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
             ),
@@ -213,7 +219,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
           child: _AssignmentChip(
             name: r.playerOName,
             mark: 'O',
-            color: AppColors.white,
+            color: AppColors.gold,
             subtitle: 'GOES SECOND',
           ),
         ),
@@ -297,7 +303,7 @@ class _AssignmentChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumCard(
       color: AppColors.surface,
-      borderColor: color.withOpacity(0.3),
+      borderColor: color.withValues(alpha: 0.3),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
       child: Row(
@@ -310,7 +316,7 @@ class _AssignmentChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+              border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
             ),
             child: Text(
               mark,

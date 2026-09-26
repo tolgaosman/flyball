@@ -47,6 +47,26 @@ class XoxGame {
     );
   }
 
+  /// Creates a match for testing without network calls.
+  factory XoxGame.testMatch({
+    List<Factor> rows = const [],
+    List<Factor> columns = const [],
+    String playerXName = 'Player X',
+    String playerOName = 'Player O',
+  }) {
+    return XoxGame._(
+      rows: rows,
+      columns: columns,
+      cells: List<XoxCell>.filled(9, const XoxCell()),
+      current: Mark.x,
+      usedPlayerIds: <String>{},
+      winner: Mark.none,
+      isDraw: false,
+      playerXName: playerXName,
+      playerOName: playerOName,
+    );
+  }
+
   final List<Factor> rows;
   final List<Factor> columns;
   final List<XoxCell> _cells;

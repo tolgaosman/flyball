@@ -8,7 +8,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../lib/game/xox/factor_pool.dart';
 import '../lib/game/xox/factor.dart';
-import '../lib/data/sqlite_player_repository.dart';
 import '../lib/data/player_database.dart';
 
 // Configure routes.
@@ -32,10 +31,10 @@ Future<Response> _generateBoardHandler(Request request) async {
   databaseFactory = databaseFactoryFfi;
   
   // Create repository and load corpus.
-  final db = PlayerDatabase();
-  await db.init();
-  final repo = SqlitePlayerRepository(db);
-  final players = await repo.getAllPlayers();
+  final db = PlayerDatabase.instance;
+  await db.open();
+  
+  final players = await db.loadAllPlayers();
   
   final board = FactorPool.generateBoard(null, players);
   

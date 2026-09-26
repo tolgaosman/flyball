@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import '../data/answer_search_service.dart';
 import '../data/player.dart';
 import '../data/player_database.dart';
 import '../game/xox/factor.dart';
@@ -50,6 +51,10 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
   /// is only built once this is false, so [_game] is always set by then.
   bool _loading = true;
 
+  /// Fetches live, current-season reference answers for a reveal; falls back
+  /// to the static on-device corpus when unavailable.
+  final AnswerSearchService _answerSearch = AnswerSearchService();
+
   void _onCellTapped(int row, int col) {
     if (_game.isOver || _game.cellAt(row, col).isFilled) return;
 
@@ -68,7 +73,9 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
     final rowFactor = _game.rows[row];
     final colFactor = _game.columns[col];
 
-    final matches = _corpus
+    // Static on-device corpus serves as the offline fallback for the live,
+    // current-season-aware search below.
+    final fallback = _corpus
         .where((p) => rowFactor.matches(p) && colFactor.matches(p))
         .map((p) => p.name)
         .toList()
@@ -79,7 +86,12 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
       builder: (context) => _AnswersDialog(
         rowFactor: rowFactor,
         colFactor: colFactor,
-        names: matches,
+        search: _answerSearch.search(
+          condition1: rowFactor.label,
+          condition2: colFactor.label,
+          localCorpus: fallback,
+        ),
+        fallback: fallback,
       ),
     );
   }
@@ -105,27 +117,32 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
       debugPrint('[XOX] DB load failed: $e');
       corpus = const [];
     }
+    
+    final game = await XoxGame.createMatch(
+      playerXName: widget.playerXName,
+      playerOName: widget.playerOName,
+    );
+    
     if (!mounted) return;
     setState(() {
       _corpus = corpus;
-      _game = XoxGame.newMatch(
-        players: corpus,
-        playerXName: widget.playerXName,
-        playerOName: widget.playerOName,
-      );
+      _game = game;
       _matchId++;
       _loading = false;
     });
   }
 
-  void _newGame() {
+  Future<void> _newGame() async {
+    setState(() => _loading = true);
+    final game = await XoxGame.createMatch(
+      playerXName: widget.playerXName,
+      playerOName: widget.playerOName,
+    );
+    if (!mounted) return;
     setState(() {
-      _game = XoxGame.newMatch(
-        players: _corpus,
-        playerXName: widget.playerXName,
-        playerOName: widget.playerOName,
-      );
+      _game = game;
       _matchId++;
+      _loading = false;
     });
   }
 
@@ -248,9 +265,9 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
   }
 }
 
-/// Colour for a mark (X = pitch green, O = white).
+/// Colour for a mark (X = pitch green, O = gold).
 Color _markColor(Mark mark) =>
-    mark == Mark.x ? AppColors.pitchGreen : AppColors.white;
+    mark == Mark.x ? AppColors.playerX : AppColors.playerO;
 
 String _markLabel(Mark mark) => mark == Mark.x ? 'X' : 'O';
 
@@ -462,25 +479,45 @@ class _GridCell extends StatelessWidget {
   }
 }
 
-/// A dialog that shows all offline valid players for the given [rowFactor] and [colFactor].
+/// A dialog listing valid players for the given [rowFactor] and [colFactor].
+///
+/// While [search] is in flight it shows a loading state, then renders the live,
+/// current-season-aware LLM names; if the search yields `null` (no proxy
+/// configured, no network, timeout, or an unparseable response) it falls back
+/// to the on-device [fallback] names computed from the static corpus.
 class _AnswersDialog extends StatefulWidget {
   const _AnswersDialog({
     required this.rowFactor,
     required this.colFactor,
-    required this.names,
+    required this.search,
+    required this.fallback,
   });
 
   final Factor rowFactor;
   final Factor colFactor;
-  final List<String> names;
+  final Future<AnswerResult?> search;
+  final List<String> fallback;
 
   @override
   State<_AnswersDialog> createState() => _AnswersDialogState();
 }
 
 class _AnswersDialogState extends State<_AnswersDialog> {
+  bool _loading = true;
+  late List<String> _names;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  /// Whether the shown list was fact-checked. The local [fallback] corpus is
+  /// trusted, so it counts as verified; only an unverified live result is false.
+  bool _verified = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _names = widget.fallback;
+    _resolve();
+  }
 
   @override
   void dispose() {
@@ -488,10 +525,20 @@ class _AnswersDialogState extends State<_AnswersDialog> {
     super.dispose();
   }
 
+  Future<void> _resolve() async {
+    final live = await widget.search;
+    if (!mounted) return;
+    setState(() {
+      _names = live?.players ?? widget.fallback;
+      _verified = live?.verified ?? true;
+      _loading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final filteredNames = widget.names
+    final filteredNames = _names
         .where((n) => n.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
@@ -501,8 +548,8 @@ class _AnswersDialogState extends State<_AnswersDialog> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: PremiumCard(
-          color: AppColors.surfaceHigh.withOpacity(0.8),
-          borderColor: AppColors.pitchGreen.withOpacity(0.5),
+          color: AppColors.surfaceHigh.withValues(alpha: 0.8),
+          borderColor: AppColors.pitchGreen.withValues(alpha: 0.5),
           padding: const EdgeInsets.all(AppSpacing.lg),
           height: size.height * 0.7,
           child: Column(
@@ -521,11 +568,19 @@ class _AnswersDialogState extends State<_AnswersDialog> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              '${widget.names.length} OYUNCU',
+              _loading ? 'ARANIYOR…' : '${_names.length} OYUNCU',
               textAlign: TextAlign.center,
               style: AppTheme.overline(color: AppColors.pitchGreen),
             ),
-            if (widget.names.isNotEmpty) ...[
+            if (!_loading && _names.isNotEmpty && !_verified) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '⚠ DOĞRULANMADI — KONTROL EDİLMEDİ',
+                textAlign: TextAlign.center,
+                style: AppTheme.overline(color: AppColors.danger),
+              ),
+            ],
+            if (!_loading && _names.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: _searchController,
@@ -552,7 +607,9 @@ class _AnswersDialogState extends State<_AnswersDialog> {
             ],
             const SizedBox(height: AppSpacing.lg),
             Expanded(
-              child: filteredNames.isEmpty
+              child: _loading
+                  ? const LoadingState(message: 'ARANIYOR…')
+                  : filteredNames.isEmpty
                   ? const EmptyState(
                       icon: Icons.search_off_rounded,
                       title: 'EŞLEŞEN OYUNCU YOK',
@@ -585,6 +642,7 @@ class _AnswersDialogState extends State<_AnswersDialog> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

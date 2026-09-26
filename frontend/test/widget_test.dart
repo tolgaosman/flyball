@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flyball/main.dart';
-import 'package:flyball/screens/football_xox_screen.dart';
+import 'package:flyball/screens/xox_lobby_screen.dart';
 
 void main() {
   testWidgets('Home shows the three game buttons', (tester) async {
@@ -8,7 +8,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('FOOTBALL XOX'), findsOneWidget);
-    expect(find.text('FOOTBALLDLE'), findsOneWidget);
+    expect(find.text('2 TEAM 1 PLAYER'), findsOneWidget);
     expect(find.text('1 TEAM 1 COUNTRY'), findsOneWidget);
   });
 
@@ -19,8 +19,9 @@ void main() {
     await tester.tap(find.text('FOOTBALL XOX'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(FootballXoxScreen), findsOneWidget);
-    // Score bar starts at 0/9.
-    expect(find.text('0/9'), findsOneWidget);
+    expect(find.byType(XoxLobbyScreen), findsOneWidget);
+    // Should see player 1 and 2 input fields
+    expect(find.text('PLAYER 1'), findsOneWidget);
+    expect(find.text('PLAYER 2'), findsOneWidget);
   });
 }

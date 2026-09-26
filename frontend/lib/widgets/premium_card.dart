@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// A premium, glassmorphic container replacing the old brutalist design.
+/// The primary "Night Pitch" surface container.
 ///
-/// Provides a sleek, soft elevated surface with subtle borders and 
-/// beautiful diffuse shadows.
+/// A warm, softly elevated card with a visible-but-soft border and a
+/// diffuse floating shadow.
 class PremiumCard extends StatelessWidget {
   const PremiumCard({
     super.key,
@@ -49,10 +49,10 @@ class PremiumCard extends StatelessWidget {
       alignment: alignment,
       padding: padding,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9), // Slight translucency for depth
+        color: color.withValues(alpha: 0.92), // Slight translucency for depth
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: borderColor.withOpacity(0.3), 
+          color: borderColor.withValues(alpha: 0.5),
           width: borderWidth,
         ),
         boxShadow: AppTheme.softShadow(elevation: elevation),

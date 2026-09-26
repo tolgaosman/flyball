@@ -29,9 +29,9 @@ class HomeScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: AppSpacing.sm),
-                      const FadeSlideIn(
-                        offset: Offset(0, 0.18),
-                        child: FlyballLogo(size: 110),
+                      FadeSlideIn(
+                        offset: const Offset(0, 0.18),
+                        child: _GlowingLogo(),
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       // Wordmark.
@@ -79,6 +79,7 @@ class HomeScreen extends StatelessWidget {
       _GameButton(
         label: 'FOOTBALL XOX',
         icon: Icons.grid_3x3_rounded,
+        primary: true,
         onPressed: () async {
           final result = await Navigator.of(context)
               .pushNamed(AppRoutes.footballXoxLobby);
@@ -117,20 +118,24 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// A premium, bouncy home button with an icon and label.
+/// A bouncy home button with an icon and label. The primary (fully built)
+/// game gets the pitch-green "lit from within" treatment; the rest stay on
+/// the neutral surface so the hierarchy reads instantly.
 class _GameButton extends StatelessWidget {
   const _GameButton({
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.color = AppColors.surfaceHigh,
-    this.foregroundColor = AppColors.textPrimary,
-    this.borderColor = AppColors.border,
-  });
+    this.primary = false,
+  })  : color = primary ? AppColors.pitchGreen : AppColors.surfaceHigh,
+        foregroundColor =
+            primary ? AppColors.surfaceLow : AppColors.textPrimary,
+        borderColor = primary ? Colors.transparent : AppColors.border;
 
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
+  final bool primary;
   final Color color;
   final Color foregroundColor;
   final Color borderColor;
@@ -156,6 +161,41 @@ class _GameButton extends StatelessWidget {
               style: AppTheme.heading(24, color: foregroundColor),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The Flyball wordmark image, floating over a soft dual-colour ambient
+/// glow (pitch green + gold) — the home screen's signature entrance.
+class _GlowingLogo extends StatelessWidget {
+  const _GlowingLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 200,
+      height: 200,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 190,
+            height: 190,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.pitchGreen.withValues(alpha: 0.28),
+                  AppColors.gold.withValues(alpha: 0.10),
+                  AppColors.pitchGreen.withValues(alpha: 0.0),
+                ],
+                stops: const [0.0, 0.55, 1.0],
+              ),
+            ),
+          ),
+          const FlyballLogo(size: 112),
         ],
       ),
     );

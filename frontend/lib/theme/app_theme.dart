@@ -27,16 +27,21 @@ class AppSpacing {
 
 /// Shared visual constants and the global [ThemeData] for Flyball.
 ///
-/// The aesthetic is "Premium Spatial" (Emil Kowalski inspired):
-/// Blurs, rounded corners, soft shadows, and incredibly smooth physics.
+/// The aesthetic is "Night Pitch": a warm, stadium-at-night look with
+/// confident geometric headlines, soft diffuse shadows, colour glows on
+/// active elements, and smooth spring-physics motion.
 class AppTheme {
   AppTheme._();
 
-  /// Standard soft corner radius for cards.
-  static const double radius = 24.0;
+  /// Standard corner radius for cards — tighter and more confident than a
+  /// generic bubbly SaaS radius.
+  static const double radius = 20.0;
 
   /// A smaller radius for chips / compact elements.
   static const double radiusSm = 12.0;
+
+  /// Standard border width.
+  static const double borderWidth = 1.0;
 
   // ---- Motion ---------------------------------------------------------------
   
@@ -56,13 +61,13 @@ class AppTheme {
   static List<BoxShadow> softShadow({double elevation = 1}) {
     return [
       BoxShadow(
-        color: AppColors.black.withOpacity(0.4 * elevation),
+        color: AppColors.black.withValues(alpha: 0.4 * elevation),
         offset: Offset(0, 8 * elevation),
         blurRadius: 24 * elevation,
         spreadRadius: -4 * elevation,
       ),
       BoxShadow(
-        color: AppColors.black.withOpacity(0.2 * elevation),
+        color: AppColors.black.withValues(alpha: 0.2 * elevation),
         offset: Offset(0, 2 * elevation),
         blurRadius: 8 * elevation,
         spreadRadius: -2 * elevation,
@@ -70,16 +75,31 @@ class AppTheme {
     ];
   }
 
+  /// A soft colour glow "lit from within" a surface, layered under
+  /// [softShadow] for primary actions and active states.
+  static List<BoxShadow> glowShadow(Color color, {double elevation = 1}) {
+    return [
+      BoxShadow(
+        color: color.withValues(alpha: 0.35 * elevation),
+        offset: Offset(0, 4 * elevation),
+        blurRadius: 20 * elevation,
+        spreadRadius: -2 * elevation,
+      ),
+      ...softShadow(elevation: elevation),
+    ];
+  }
+
   // ---- Type scale -----------------------------------------------------------
 
-  /// A highly legible, beautiful modern sans-serif (Inter).
+  /// A confident, geometric display sans-serif (Space Grotesk) — used for
+  /// headings and anywhere the type needs personality.
   static TextStyle heading(double size, {Color color = AppColors.textPrimary}) {
-    return GoogleFonts.inter(
+    return GoogleFonts.spaceGrotesk(
       fontSize: size,
       fontWeight: FontWeight.w600,
       color: color,
       height: 1.1,
-      letterSpacing: -0.8,
+      letterSpacing: -0.6,
     );
   }
 
@@ -100,23 +120,24 @@ class AppTheme {
 
   // Named scale — prefer these for consistent hierarchy.
   static TextStyle displayXL({Color color = AppColors.textPrimary}) =>
-      heading(48, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.5);
+      heading(48, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.2);
   static TextStyle display({Color color = AppColors.textPrimary}) =>
-      heading(36, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.2);
+      heading(36, color: color).copyWith(fontWeight: FontWeight.w700, letterSpacing: -1.0);
   static TextStyle title({Color color = AppColors.textPrimary}) => heading(24, color: color);
   static TextStyle headline({Color color = AppColors.textPrimary}) => heading(18, color: color);
   static TextStyle body({Color color = AppColors.textPrimary}) => label(16, color: color, weight: FontWeight.w400);
   static TextStyle caption({Color color = AppColors.textMuted}) =>
       label(14, color: color, weight: FontWeight.w400);
 
-  /// Uppercase, tracked label for section headers.
+  /// Uppercase, tracked label for section headers — set in the display face
+  /// (Space Grotesk) so section labels carry the same brand personality.
   static TextStyle overline({Color color = AppColors.textMuted}) {
-    return GoogleFonts.inter(
+    return GoogleFonts.spaceGrotesk(
       fontSize: 12,
       fontWeight: FontWeight.w600,
       color: color,
       height: 1.2,
-      letterSpacing: 1.0,
+      letterSpacing: 1.2,
     );
   }
 
@@ -128,7 +149,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: base.colorScheme.copyWith(
         primary: AppColors.pitchGreen,
-        secondary: AppColors.pitchGreen,
+        secondary: AppColors.gold,
         surface: AppColors.surface,
         error: AppColors.danger,
       ),
@@ -137,7 +158,7 @@ class AppTheme {
         displayColor: AppColors.textPrimary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background.withOpacity(0.7),
+        backgroundColor: AppColors.background.withValues(alpha: 0.7),
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
@@ -157,14 +178,14 @@ class AppTheme {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
           TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
           TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
         },
       ),
-      splashColor: AppColors.pitchGreen.withOpacity(0.1),
+      splashColor: AppColors.pitchGreen.withValues(alpha: 0.1),
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
     );

@@ -30,8 +30,8 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/coverage/
+build/
+coverage/
 
 # Flyball: optional local secrets (API keys are passed via --dart-define,
 # but if you keep a local launch script with a key, ignore it here).
@@ -41,7 +41,7 @@ dart_define.json
 run_with_key.*
 
 # Android release signing — keystore + credentials must never be committed.
-/android/key.properties
+**/android/key.properties
 *.jks
 *.keystore
 
@@ -52,6 +52,6 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+**/android/app/debug
+**/android/app/profile
+**/android/app/release

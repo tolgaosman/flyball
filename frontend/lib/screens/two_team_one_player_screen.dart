@@ -217,7 +217,7 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
                                     team: _displayA, spinning: _spinning),
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.md),
+                            const SizedBox(width: AppSpacing.lg),
                             Expanded(
                               child: SuccessPop(
                                 trigger: _spinning ? null : _teamB,
@@ -244,7 +244,7 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
                                     setState(() => _p1Score = max(0, _p1Score - 1)),
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.md),
+                            const SizedBox(width: AppSpacing.lg),
                             Expanded(
                               child: _ScorePanel(
                                 name: _p2Name,
@@ -366,7 +366,7 @@ class _ScorePanel extends StatelessWidget {
       borderColor: AppColors.border,
       soft: true,
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.lg),
+          horizontal: AppSpacing.sm, vertical: AppSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -405,9 +405,8 @@ class _ScorePanel extends StatelessWidget {
                   onPressed: onDecrement,
                   color: AppColors.surfaceLow,
                   foregroundColor: AppColors.white,
-                  borderColor: AppColors.white,
+                  borderColor: AppColors.border,
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  restingOffset: const Offset(3, 3),
                   child: const Text('−'),
                 ),
               ),
@@ -416,7 +415,6 @@ class _ScorePanel extends StatelessWidget {
                 child: PremiumButton(
                   onPressed: onIncrement,
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  restingOffset: const Offset(3, 3),
                   child: const Text('+'),
                 ),
               ),

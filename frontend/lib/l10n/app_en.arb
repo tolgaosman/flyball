@@ -27,6 +27,8 @@
   "aiNotConfiguredMessage": "Flyball needs an AI connection to play — every answer comes from a live search, there's no offline player list. Run with --dart-define-from-file=dart_define.json after filling in API_BASE_URL or GEMINI_API_KEY.",
   "aiUnavailableTitle": "AI UNAVAILABLE",
   "aiUnavailableMessage": "Couldn't reach the AI. Check your connection and try again.",
+  "aiQuotaExceededTitle": "AI LIMIT REACHED",
+  "aiQuotaExceededMessage": "The AI hit its daily usage limit. Try again later.",
 
   "lobbyTitle": "FOOTBALL XOX",
   "lobbyPlayerXLabel": "Player X",

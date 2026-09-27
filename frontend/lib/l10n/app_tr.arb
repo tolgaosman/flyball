@@ -27,6 +27,8 @@
   "aiNotConfiguredMessage": "Flyball'ın oynanabilmesi için bir yapay zeka bağlantısı gerekir — her cevap canlı bir aramadan gelir, çevrimdışı bir oyuncu listesi yoktur. API_BASE_URL veya GEMINI_API_KEY doldurulduktan sonra --dart-define-from-file=dart_define.json ile çalıştır.",
   "aiUnavailableTitle": "YAPAY ZEKAYA ULAŞILAMADI",
   "aiUnavailableMessage": "Yapay zekaya ulaşılamadı. Bağlantını kontrol edip tekrar dene.",
+  "aiQuotaExceededTitle": "YAPAY ZEKA LİMİTİ DOLDU",
+  "aiQuotaExceededMessage": "Yapay zeka günlük kullanım limitine ulaştı. Daha sonra tekrar dene.",
 
   "lobbyTitle": "FOOTBALL XOX",
   "lobbyPlayerXLabel": "Oyuncu X",

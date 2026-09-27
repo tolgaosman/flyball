@@ -11,6 +11,7 @@ import '../widgets/animations.dart';
 import '../widgets/dynamic_art.dart';
 import '../widgets/premium_button.dart';
 import '../widgets/flyball_logo.dart';
+import '../widgets/screen_fit.dart';
 
 /// The landing screen: the Flyball brand mark and the game buttons.
 class HomeScreen extends StatelessWidget {
@@ -23,68 +24,58 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                        vertical: AppSpacing.xl,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: AppSpacing.sm),
-                          FadeSlideIn(
-                            offset: const Offset(0, 0.18),
-                            child: _GlowingLogo(),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          // Wordmark.
-                          FadeSlideIn(
-                            delay: const Duration(milliseconds: 80),
-                            child: Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'FLY',
-                                    style: AppTheme.displayXL(color: AppColors.white),
-                                  ),
-                                  TextSpan(
-                                    text: 'BALL',
-                                    style: AppTheme.displayXL(
-                                        color: AppColors.pitchGreen),
-                                  ),
-                                ],
+            ScreenFit(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: AppSpacing.sm),
+                    FadeSlideIn(
+                      offset: const Offset(0, 0.18),
+                      child: _GlowingLogo(),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    // Wordmark.
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 80),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'FLY',
+                              style: AppTheme.displayXL(color: AppColors.white),
+                            ),
+                            TextSpan(
+                              text: 'BALL',
+                              style: AppTheme.displayXL(
+                                color: AppColors.pitchGreen,
                               ),
                             ),
-                          ),
-
-                          const SizedBox(height: AppSpacing.xxl),
-                          ..._buildGameButtons(context, l10n),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+
+                    const SizedBox(height: AppSpacing.xxl),
+                    ..._buildGameButtons(context, l10n),
+                  ],
+                ),
+              ),
             ),
             if (sessionController.isAvailable)
               Positioned(
                 top: AppSpacing.md,
                 left: AppSpacing.lg,
-                child: FadeSlideIn(
-                  child: _AccountButton(l10n: l10n),
-                ),
+                child: FadeSlideIn(child: _AccountButton(l10n: l10n)),
               ),
             Positioned(
               top: AppSpacing.md,
               right: AppSpacing.lg,
-              child: FadeSlideIn(
-                child: _LanguageToggle(l10n: l10n),
-              ),
+              child: FadeSlideIn(child: _LanguageToggle(l10n: l10n)),
             ),
           ],
         ),
@@ -99,13 +90,13 @@ class HomeScreen extends StatelessWidget {
         icon: Icons.grid_3x3_rounded,
         primary: true,
         onPressed: () async {
-          final result = await Navigator.of(context)
-              .pushNamed(AppRoutes.footballXoxLobby);
+          final result = await Navigator.of(
+            context,
+          ).pushNamed(AppRoutes.footballXoxLobby);
           if (!context.mounted || result == null) return;
-          Navigator.of(context).pushNamed(
-            AppRoutes.footballXox,
-            arguments: result,
-          );
+          Navigator.of(
+            context,
+          ).pushNamed(AppRoutes.footballXox, arguments: result);
         },
       ),
       _GameButton(
@@ -124,8 +115,7 @@ class HomeScreen extends StatelessWidget {
         label: l10n.playFootballdle,
         icon: Icons.password_rounded,
         badge: l10n.comingSoonBadge,
-        onPressed: () =>
-            Navigator.of(context).pushNamed(AppRoutes.footballdle),
+        onPressed: () => Navigator.of(context).pushNamed(AppRoutes.footballdle),
       ),
     ];
 
@@ -205,7 +195,11 @@ class _AccountButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (user == null)
-                  const Icon(Icons.person_rounded, size: 16, color: AppColors.pitchGreen)
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 16,
+                    color: AppColors.pitchGreen,
+                  )
                 else
                   Monogram(text: user.displayName, size: 24),
                 const SizedBox(width: 8),
@@ -238,9 +232,16 @@ class _AccountButton extends StatelessWidget {
             children: [
               Monogram(text: user.displayName, size: 56),
               const SizedBox(height: AppSpacing.md),
-              Text(user.displayName, style: AppTheme.title(), textAlign: TextAlign.center),
+              Text(
+                user.displayName,
+                style: AppTheme.title(),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.xs),
-              Text(l10n.authSignedInAs(user.username), style: AppTheme.caption()),
+              Text(
+                l10n.authSignedInAs(user.username),
+                style: AppTheme.caption(),
+              ),
               const SizedBox(height: AppSpacing.xl),
               PremiumButton(
                 onPressed: () {
@@ -271,10 +272,9 @@ class _GameButton extends StatelessWidget {
     required this.onPressed,
     this.primary = false,
     this.badge,
-  })  : color = primary ? AppColors.pitchGreen : AppColors.surfaceHigh,
-        foregroundColor =
-            primary ? AppColors.surfaceLow : AppColors.textPrimary,
-        borderColor = primary ? Colors.transparent : AppColors.border;
+  }) : color = primary ? AppColors.pitchGreen : AppColors.surfaceHigh,
+       foregroundColor = primary ? AppColors.surfaceLow : AppColors.textPrimary,
+       borderColor = primary ? Colors.transparent : AppColors.border;
 
   final String label;
   final IconData icon;
@@ -313,11 +313,15 @@ class _GameButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceLow.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: foregroundColor.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: foregroundColor.withValues(alpha: 0.4),
+                ),
               ),
               child: Text(
                 badge!,
-                style: AppTheme.overline(color: foregroundColor).copyWith(fontSize: 10),
+                style: AppTheme.overline(
+                  color: foregroundColor,
+                ).copyWith(fontSize: 10),
               ),
             ),
           ],

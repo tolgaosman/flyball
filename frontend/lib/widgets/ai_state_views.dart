@@ -29,17 +29,22 @@ class AiNotConfiguredView extends StatelessWidget {
 /// one state every AI-backed screen must show instead of silently rendering
 /// nothing when a gateway call returns `null`.
 class AiUnavailableView extends StatelessWidget {
-  const AiUnavailableView({super.key, required this.onRetry});
+  const AiUnavailableView({super.key, required this.onRetry, this.quotaExceeded = false});
 
   final VoidCallback onRetry;
+
+  /// True when the failure was specifically Gemini's quota/rate limit being
+  /// exhausted, rather than a genuine network/timeout failure — shows an
+  /// accurate message instead of telling the user to check their connection.
+  final bool quotaExceeded;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return ErrorState(
-      icon: Icons.wifi_off_rounded,
-      title: l10n.aiUnavailableTitle,
-      message: l10n.aiUnavailableMessage,
+      icon: quotaExceeded ? Icons.hourglass_bottom_rounded : Icons.wifi_off_rounded,
+      title: quotaExceeded ? l10n.aiQuotaExceededTitle : l10n.aiUnavailableTitle,
+      message: quotaExceeded ? l10n.aiQuotaExceededMessage : l10n.aiUnavailableMessage,
       action: PremiumButton(
         onPressed: onRetry,
         expand: false,

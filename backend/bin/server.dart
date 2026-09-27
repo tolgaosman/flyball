@@ -32,16 +32,20 @@ Future<Response> _answersHandler(Request request) async {
     return errorResponse('missing "a" or "b"');
   }
 
-  final AnswerResult? result;
-  switch (kind) {
-    case 'two_team':
-      result = await _service.answersForTwoTeam(a, b);
-    case 'team_country':
-      result = await _service.answersForTeamCountry(a, b);
-    case 'xox':
-      result = await _service.answersForFactors(a, b);
-    default:
-      return errorResponse('invalid "kind" (expected two_team | team_country | xox)');
+  AnswerResult? result;
+  try {
+    switch (kind) {
+      case 'two_team':
+        result = await _service.answersForTwoTeam(a, b);
+      case 'team_country':
+        result = await _service.answersForTeamCountry(a, b);
+      case 'xox':
+        result = await _service.answersForFactors(a, b);
+      default:
+        return errorResponse('invalid "kind" (expected two_team | team_country | xox)');
+    }
+  } on GeminiQuotaExceededException {
+    return errorResponse('AI quota exceeded — try again later', status: 429);
   }
 
   if (result == null) {
@@ -51,21 +55,33 @@ Future<Response> _answersHandler(Request request) async {
 }
 
 Future<Response> _twoTeamRoundHandler(Request request) async {
-  final round = await _service.nextRound(RoundKind.twoTeam);
-  if (round == null) return errorResponse('AI unreachable — try again', status: 502);
-  return jsonResponse(round.toJson());
+  try {
+    final round = await _service.nextRound(RoundKind.twoTeam);
+    if (round == null) return errorResponse('AI unreachable — try again', status: 502);
+    return jsonResponse(round.toJson());
+  } on GeminiQuotaExceededException {
+    return errorResponse('AI quota exceeded — try again later', status: 429);
+  }
 }
 
 Future<Response> _teamCountryRoundHandler(Request request) async {
-  final round = await _service.nextRound(RoundKind.teamCountry);
-  if (round == null) return errorResponse('AI unreachable — try again', status: 502);
-  return jsonResponse(round.toJson());
+  try {
+    final round = await _service.nextRound(RoundKind.teamCountry);
+    if (round == null) return errorResponse('AI unreachable — try again', status: 502);
+    return jsonResponse(round.toJson());
+  } on GeminiQuotaExceededException {
+    return errorResponse('AI quota exceeded — try again later', status: 429);
+  }
 }
 
 Future<Response> _xoxBoardHandler(Request request) async {
-  final board = await _service.nextBoard();
-  if (board == null) return errorResponse('AI unreachable — try again', status: 502);
-  return jsonResponse(board.toJson());
+  try {
+    final board = await _service.nextBoard();
+    if (board == null) return errorResponse('AI unreachable — try again', status: 502);
+    return jsonResponse(board.toJson());
+  } on GeminiQuotaExceededException {
+    return errorResponse('AI quota exceeded — try again later', status: 429);
+  }
 }
 
 void main(List<String> args) async {

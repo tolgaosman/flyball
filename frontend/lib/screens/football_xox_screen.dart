@@ -48,6 +48,7 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
   int _matchId = 0;
   bool _loading = true;
   bool _errored = false;
+  bool _quotaExceeded = false;
 
   /// Guards against a slower stale `_load`/`_newGame` call overwriting a
   /// newer one's result (e.g. mashing the refresh button).
@@ -98,19 +99,22 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
     setState(() => _loading = true);
     XoxGame? game;
     var errored = false;
+    var quotaExceeded = false;
     try {
       game = await XoxGame.createMatch(
         aiGateway: _aiGateway,
         playerXName: widget.playerXName,
         playerOName: widget.playerOName,
       );
-    } on AiUnavailableException {
+    } on AiUnavailableException catch (e) {
       errored = true;
+      quotaExceeded = e.quotaExceeded;
     }
     if (!mounted || requestId != _requestId) return; // a newer request won.
     setState(() {
       _loading = false;
       _errored = errored;
+      _quotaExceeded = quotaExceeded;
       if (game != null) {
         _game = game;
         _matchId++;
@@ -149,8 +153,9 @@ class _FootballXoxScreenState extends State<FootballXoxScreen> {
     if (_loading) return LoadingState(message: l10n.xoxBuildingBoard);
     if (_errored || _game == null) {
       return ErrorState(
-        title: l10n.xoxBoardUnavailableTitle,
-        message: l10n.aiUnavailableMessage,
+        icon: _quotaExceeded ? Icons.hourglass_bottom_rounded : Icons.wifi_off_rounded,
+        title: _quotaExceeded ? l10n.aiQuotaExceededTitle : l10n.xoxBoardUnavailableTitle,
+        message: _quotaExceeded ? l10n.aiQuotaExceededMessage : l10n.aiUnavailableMessage,
         action: PremiumButton(
           onPressed: _load,
           expand: false,

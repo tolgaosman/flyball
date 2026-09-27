@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flyball_core/flyball_core.dart';
 
+import '../data/ai/ai_exceptions.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -98,6 +99,7 @@ class _AiAnswersSheetContent extends StatefulWidget {
 class _AiAnswersSheetContentState extends State<_AiAnswersSheetContent> {
   bool _loading = true;
   bool _errored = false;
+  bool _quotaExceeded = false;
   List<String> _names = const [];
   bool _verified = true;
 
@@ -113,19 +115,26 @@ class _AiAnswersSheetContentState extends State<_AiAnswersSheetContent> {
       _loading = true;
       _errored = false;
     });
-    final result = await widget.fetch();
+    AnswerResult? result;
+    var quotaExceeded = false;
+    try {
+      result = await widget.fetch();
+    } on AiUnavailableException catch (e) {
+      quotaExceeded = e.quotaExceeded;
+    }
     if (!mounted) return;
     if (result == null) {
       // A preview from the board builder is still something real — keep
       // showing it rather than an error, unless there was nothing to show.
       setState(() {
         _errored = _names.isEmpty;
+        _quotaExceeded = quotaExceeded;
         _loading = false;
       });
       return;
     }
     setState(() {
-      _names = result.players;
+      _names = result!.players;
       _verified = result.verified;
       _loading = false;
       _errored = false;
@@ -139,6 +148,7 @@ class _AiAnswersSheetContentState extends State<_AiAnswersSheetContent> {
       child: _AnswersBody(
         loading: _loading,
         errored: _errored,
+        quotaExceeded: _quotaExceeded,
         names: _names,
         verified: _verified,
         onRetry: _errored ? _run : null,
@@ -202,6 +212,7 @@ class _AnswersBody extends StatefulWidget {
   const _AnswersBody({
     required this.loading,
     required this.errored,
+    this.quotaExceeded = false,
     required this.names,
     required this.verified,
     required this.onRetry,
@@ -209,6 +220,7 @@ class _AnswersBody extends StatefulWidget {
 
   final bool loading;
   final bool errored;
+  final bool quotaExceeded;
   final List<String> names;
   final bool verified;
   final VoidCallback? onRetry;
@@ -233,8 +245,9 @@ class _AnswersBodyState extends State<_AnswersBody> {
 
     if (widget.errored) {
       return ErrorState(
-        title: l10n.answersSearchFailedTitle,
-        message: l10n.answersSearchFailedMessage,
+        icon: widget.quotaExceeded ? Icons.hourglass_bottom_rounded : Icons.wifi_off_rounded,
+        title: widget.quotaExceeded ? l10n.aiQuotaExceededTitle : l10n.answersSearchFailedTitle,
+        message: widget.quotaExceeded ? l10n.aiQuotaExceededMessage : l10n.answersSearchFailedMessage,
         action: widget.onRetry == null
             ? null
             : PremiumButton(

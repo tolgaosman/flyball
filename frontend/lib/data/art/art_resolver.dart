@@ -24,6 +24,12 @@ class ArtResolver {
   static const _cacheTtl = Duration(days: 30);
   static const _minRequestGap = Duration(milliseconds: 250);
 
+  /// Cache-key prefix. Bump this if the caching logic changes in a way that
+  /// makes previously-stored entries unsafe to reuse (e.g. this version fixed
+  /// failed lookups being cached as permanent misses) — old entries are then
+  /// simply never read again instead of needing a manual cache clear.
+  static const _cacheVersion = 'v2';
+
   final http.Client _client = http.Client();
   final Map<String, Future<String?>> _inFlight = {};
   DateTime _lastRequestAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -33,7 +39,10 @@ class ArtResolver {
   Future<String?> clubLogoUrl(String clubName) {
     final club = ClubCatalog.byName(clubName);
     if (club == null) return Future.value(null);
-    return _cached('club:${club.name}', () => _fetchClubBadge(club));
+    return _cached(
+      '$_cacheVersion:club:${club.name}',
+      () => _fetchClubBadge(club),
+    );
   }
 
   /// The league badge URL for [leagueName], or null if unavailable.
@@ -41,7 +50,10 @@ class ArtResolver {
     final comp = CompetitionCatalog.byName(leagueName);
     final id = comp?.sportsDbLeagueId;
     if (id == null) return Future.value(null);
-    return _cached('league_badge:$leagueName', () => _fetchLeagueField(id, 'strBadge'));
+    return _cached(
+      '$_cacheVersion:league_badge:$leagueName',
+      () => _fetchLeagueField(id, 'strBadge'),
+    );
   }
 
   /// The trophy image URL for [tournamentName], or null if unavailable.
@@ -49,7 +61,10 @@ class ArtResolver {
     final comp = CompetitionCatalog.byName(tournamentName);
     final id = comp?.sportsDbLeagueId;
     if (id == null) return Future.value(null);
-    return _cached('trophy:$tournamentName', () => _fetchLeagueField(id, 'strTrophy'));
+    return _cached(
+      '$_cacheVersion:trophy:$tournamentName',
+      () => _fetchLeagueField(id, 'strTrophy'),
+    );
   }
 
   /// The flagcdn.com flag URL for [countryName] — synchronous, no network
@@ -76,10 +91,16 @@ class ArtResolver {
     if (existing != null) return existing;
 
     final future = fetch().then((url) async {
-      await prefs.setString(
-        key,
-        jsonEncode({'url': url, 'ts': DateTime.now().millisecondsSinceEpoch}),
-      );
+      // Only cache a real hit. A transient failure (rate limit, dropped
+      // connection, ...) returns null — caching that would lock the
+      // Monogram fallback in for the full TTL instead of trying again next
+      // time this club/league is looked up.
+      if (url != null) {
+        await prefs.setString(
+          key,
+          jsonEncode({'url': url, 'ts': DateTime.now().millisecondsSinceEpoch}),
+        );
+      }
       return url;
     });
     _inFlight[key] = future;
@@ -93,13 +114,32 @@ class ArtResolver {
     _lastRequestAt = DateTime.now();
   }
 
+  /// GETs [uri], retrying once after a short delay on a non-200 status or a
+  /// network error — the shared free API key is occasionally rate-limited
+  /// for a single request, and a short backoff is usually enough to clear.
+  Future<http.Response?> _getWithRetry(Uri uri) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final res = await _client.get(uri).timeout(const Duration(seconds: 8));
+        if (res.statusCode == 200) return res;
+      } catch (_) {
+        // Fall through to retry/give up below.
+      }
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      }
+    }
+    return null;
+  }
+
   Future<String?> _fetchClubBadge(Club club) async {
     await _throttle();
     try {
       final uri = Uri.parse(
-          '$_apiBase/searchteams.php?t=${Uri.encodeQueryComponent(club.sportsDbName)}');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
+        '$_apiBase/searchteams.php?t=${Uri.encodeQueryComponent(club.sportsDbName)}',
+      );
+      final res = await _getWithRetry(uri);
+      if (res == null) return null;
       final decoded = jsonDecode(res.body) as Map<String, dynamic>;
       final teams = decoded['teams'] as List?;
       if (teams == null || teams.isEmpty) return null;
@@ -145,8 +185,8 @@ class ArtResolver {
     await _throttle();
     try {
       final uri = Uri.parse('$_apiBase/lookupleague.php?id=$leagueId');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
+      final res = await _getWithRetry(uri);
+      if (res == null) return null;
       final decoded = jsonDecode(res.body) as Map<String, dynamic>;
       final leagues = decoded['leagues'] as List?;
       if (leagues == null || leagues.isEmpty) return null;

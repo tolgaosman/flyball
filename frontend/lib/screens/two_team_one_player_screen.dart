@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flyball_core/flyball_core.dart';
 
+import '../data/ai/ai_exceptions.dart';
 import '../data/ai/ai_gateway.dart';
 import '../data/ai/ai_gateway_factory.dart';
 import '../config/app_config.dart';
@@ -17,6 +18,7 @@ import '../widgets/answers_sheet.dart';
 import '../widgets/dynamic_art.dart';
 import '../widgets/party_widgets.dart';
 import '../widgets/premium_button.dart';
+import '../widgets/screen_fit.dart';
 import '../widgets/states.dart';
 
 /// **2 Team 1 Player** — a two-player party quiz.
@@ -36,11 +38,15 @@ class TwoTeamOnePlayerScreen extends StatefulWidget {
 class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
   final Random _rng = Random();
   late final AiGateway _aiGateway = createAiGateway();
-  late final RoundQueue _queue = RoundQueue(aiGateway: _aiGateway, kind: RoundKind.twoTeam);
+  late final RoundQueue _queue = RoundQueue(
+    aiGateway: _aiGateway,
+    kind: RoundKind.twoTeam,
+  );
 
   Round? _round;
   bool _loading = true;
   bool _errored = false;
+  bool _quotaExceeded = false;
 
   String _displayA = '';
   String _displayB = '';
@@ -63,10 +69,17 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
       _loading = true;
       _errored = false;
     });
-    final round = await _queue.next();
+    Round? round;
+    var quotaExceeded = false;
+    try {
+      round = await _queue.next();
+    } on AiUnavailableException catch (e) {
+      quotaExceeded = e.quotaExceeded;
+    }
     if (!mounted) return;
     setState(() {
       _loading = false;
+      _quotaExceeded = quotaExceeded;
       if (round == null) {
         _errored = true;
       } else {
@@ -96,11 +109,18 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
     });
 
     Future.delayed(const Duration(seconds: 2), () async {
-      final round = await _queue.next();
+      Round? round;
+      var quotaExceeded = false;
+      try {
+        round = await _queue.next();
+      } on AiUnavailableException catch (e) {
+        quotaExceeded = e.quotaExceeded;
+      }
       _spinTimer?.cancel();
       if (!mounted) return;
       setState(() {
         _spinning = false;
+        _quotaExceeded = quotaExceeded;
         if (round == null) {
           _errored = true;
         } else {
@@ -148,92 +168,100 @@ class _TwoTeamOnePlayerScreenState extends State<TwoTeamOnePlayerScreen> {
         child: !AppConfig.hasAi
             ? const AiNotConfiguredView()
             : _loading
-                ? const LoadingState()
-                : _errored
-                    ? AiUnavailableView(onRetry: _load)
-                    : _buildBody(l10n),
+            ? const LoadingState()
+            : _errored
+            ? AiUnavailableView(onRetry: _load, quotaExceeded: _quotaExceeded)
+            : _buildBody(l10n),
       ),
     );
   }
 
   Widget _buildBody(AppLocalizations l10n) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
+    return ScreenFit(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: AppSpacing.sm),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: AppSpacing.sm),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: SuccessPop(
-                            trigger: _spinning ? null : _displayA,
-                            child: SlotCard(name: _displayA, spinning: _spinning, isCountry: false),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: SuccessPop(
-                            trigger: _spinning ? null : _displayB,
-                            child: SlotCard(name: _displayB, spinning: _spinning, isCountry: false),
-                          ),
-                        ),
-                      ],
+                  Expanded(
+                    child: SuccessPop(
+                      trigger: _spinning ? null : _displayA,
+                      child: SlotCard(
+                        name: _displayA,
+                        spinning: _spinning,
+                        isCountry: false,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xl),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: ScorePanel(
-                            name: _p1Name.isEmpty ? l10n.partyPlayer1Default : _p1Name,
-                            score: _p1Score,
-                            onEditName: () => _editName(true),
-                            onIncrement: () => setState(() => _p1Score++),
-                            onDecrement: () => setState(() => _p1Score = max(0, _p1Score - 1)),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: ScorePanel(
-                            name: _p2Name.isEmpty ? l10n.partyPlayer2Default : _p2Name,
-                            score: _p2Score,
-                            onEditName: () => _editName(false),
-                            onIncrement: () => setState(() => _p2Score++),
-                            onDecrement: () => setState(() => _p2Score = max(0, _p2Score - 1)),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: SuccessPop(
+                      trigger: _spinning ? null : _displayB,
+                      child: SlotCard(
+                        name: _displayB,
+                        spinning: _spinning,
+                        isCountry: false,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  PremiumButton(
-                    onPressed: _spinning ? null : _spin,
-                    child: Text(l10n.partyNewTeams),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  PremiumButton(
-                    onPressed: (_spinning || _round == null) ? null : _showAnswers,
-                    color: AppColors.surface,
-                    foregroundColor: AppColors.white,
-                    borderColor: AppColors.pitchGreen,
-                    child: Text(l10n.partyAnswers),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
                 ],
               ),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: AppSpacing.xl),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ScorePanel(
+                      name: _p1Name.isEmpty
+                          ? l10n.partyPlayer1Default
+                          : _p1Name,
+                      score: _p1Score,
+                      onEditName: () => _editName(true),
+                      onIncrement: () => setState(() => _p1Score++),
+                      onDecrement: () =>
+                          setState(() => _p1Score = max(0, _p1Score - 1)),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: ScorePanel(
+                      name: _p2Name.isEmpty
+                          ? l10n.partyPlayer2Default
+                          : _p2Name,
+                      score: _p2Score,
+                      onEditName: () => _editName(false),
+                      onIncrement: () => setState(() => _p2Score++),
+                      onDecrement: () =>
+                          setState(() => _p2Score = max(0, _p2Score - 1)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            PremiumButton(
+              onPressed: _spinning ? null : _spin,
+              child: Text(l10n.partyNewTeams),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            PremiumButton(
+              onPressed: (_spinning || _round == null) ? null : _showAnswers,
+              color: AppColors.surface,
+              foregroundColor: AppColors.white,
+              borderColor: AppColors.pitchGreen,
+              child: Text(l10n.partyAnswers),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -253,13 +281,24 @@ class _Header extends StatelessWidget {
             ClubLogo(clubName: teamA, size: 42),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text('×', style: TextStyle(color: AppColors.whiteMuted, fontSize: 24, fontWeight: FontWeight.bold)),
+              child: Text(
+                '×',
+                style: TextStyle(
+                  color: AppColors.whiteMuted,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             ClubLogo(clubName: teamB, size: 42),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        Text('$teamA  ×  $teamB', textAlign: TextAlign.center, style: AppTheme.headline()),
+        Text(
+          '$teamA  ×  $teamB',
+          textAlign: TextAlign.center,
+          style: AppTheme.headline(),
+        ),
       ],
     );
   }

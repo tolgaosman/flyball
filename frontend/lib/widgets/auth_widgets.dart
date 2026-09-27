@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import 'animations.dart';
 import 'premium_button.dart';
 import 'premium_card.dart';
+import 'screen_fit.dart';
 import 'states.dart';
 
 /// Localized text for an [AccountException.code] from the backend.
@@ -21,7 +22,9 @@ String authErrorMessage(AppLocalizations l10n, String code) {
       return l10n.authTooManyAttempts;
     case AccountErrors.invalidUsername:
       return l10n.authInvalidUsername(
-          AccountRules.usernameMinLength, AccountRules.usernameMaxLength);
+        AccountRules.usernameMinLength,
+        AccountRules.usernameMaxLength,
+      );
     case AccountErrors.weakPassword:
       return l10n.authWeakPassword(AccountRules.passwordMinLength);
     case AccountErrors.invalidDisplayName:
@@ -53,41 +56,51 @@ class AuthPageBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
+      child: ScreenFit(
+        designWidth: 400,
+        child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
             vertical: AppSpacing.xl,
           ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FadeSlideIn(
-                  child: Icon(icon, size: 56, color: AppColors.pitchGreen.withValues(alpha: 0.8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FadeSlideIn(
+                child: Icon(
+                  icon,
+                  size: 56,
+                  color: AppColors.pitchGreen.withValues(alpha: 0.8),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 80),
-                  child: Text(headline, textAlign: TextAlign.center, style: AppTheme.title()),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 80),
+                child: Text(
+                  headline,
+                  textAlign: TextAlign.center,
+                  style: AppTheme.title(),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 120),
-                  child: Text(subtitle, textAlign: TextAlign.center, style: AppTheme.caption()),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: AppTheme.caption(),
                 ),
-                const SizedBox(height: AppSpacing.xxl),
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 180),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: children,
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 180),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -138,7 +151,10 @@ class _AuthTextFieldState extends State<AuthTextField> {
     return PremiumCard(
       color: AppColors.surface,
       borderColor: AppColors.border,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
       child: TextFormField(
         controller: widget.controller,
         focusNode: widget.focusNode,
@@ -163,10 +179,14 @@ class _AuthTextFieldState extends State<AuthTextField> {
           icon: Icon(widget.icon, color: AppColors.pitchGreen, size: 24),
           suffixIcon: widget.obscure
               ? IconButton(
-                  tooltip: _hidden ? l10n.authShowPassword : l10n.authHidePassword,
+                  tooltip: _hidden
+                      ? l10n.authShowPassword
+                      : l10n.authHidePassword,
                   onPressed: () => setState(() => _hidden = !_hidden),
                   icon: Icon(
-                    _hidden ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                    _hidden
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
                     color: AppColors.whiteMuted,
                     size: 20,
                   ),
@@ -190,12 +210,24 @@ class AuthErrorBanner extends StatelessWidget {
     return PremiumCard(
       color: AppColors.surface,
       borderColor: AppColors.danger,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.danger,
+            size: 20,
+          ),
           const SizedBox(width: AppSpacing.md),
-          Expanded(child: Text(message, style: AppTheme.body(color: AppColors.textPrimary))),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTheme.body(color: AppColors.textPrimary),
+            ),
+          ),
         ],
       ),
     );
@@ -224,7 +256,10 @@ class AuthSubmitButton extends StatelessWidget {
           ? const SizedBox(
               width: 22,
               height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.pitchGreen),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.pitchGreen,
+              ),
             )
           : Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
@@ -253,7 +288,10 @@ class AuthSwitchLink extends StatelessWidget {
         Text(prompt, style: AppTheme.caption()),
         TextButton(
           onPressed: onTap,
-          child: Text(action, style: AppTheme.label(14, color: AppColors.pitchGreen)),
+          child: Text(
+            action,
+            style: AppTheme.label(14, color: AppColors.pitchGreen),
+          ),
         ),
       ],
     );

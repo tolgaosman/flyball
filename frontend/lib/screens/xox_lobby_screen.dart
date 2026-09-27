@@ -9,6 +9,7 @@ import '../utils/text_utils.dart';
 import '../widgets/animations.dart';
 import '../widgets/premium_button.dart';
 import '../widgets/premium_card.dart';
+import '../widgets/screen_fit.dart';
 
 /// Pre-game lobby for Football XOX: both players enter their names, and
 /// X / O marks are assigned randomly. Returns a [XoxLobbyResult] to the
@@ -22,10 +23,7 @@ class XoxLobbyScreen extends StatefulWidget {
 
 /// The result passed back from the lobby to the game screen.
 class XoxLobbyResult {
-  const XoxLobbyResult({
-    required this.playerXName,
-    required this.playerOName,
-  });
+  const XoxLobbyResult({required this.playerXName, required this.playerOName});
 
   /// Name of the player who will play as X.
   final String playerXName;
@@ -90,13 +88,15 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
     return Scaffold(
       appBar: AppBar(title: Text(l10n.lobbyTitle)),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
+        child: ScreenFit(
+          child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xl,
               vertical: AppSpacing.xl,
             ),
-            child: _flipping ? _buildFlipResult(l10n, context) : _buildForm(l10n),
+            child: _flipping
+                ? _buildFlipResult(l10n, context)
+                : _buildForm(l10n),
           ),
         ),
       ),
@@ -121,10 +121,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
           const SizedBox(height: AppSpacing.lg),
           FadeSlideIn(
             delay: const Duration(milliseconds: 120),
-            child: Text(
-              l10n.lobbyRandomAssignHint,
-              style: AppTheme.caption(),
-            ),
+            child: Text(l10n.lobbyRandomAssignHint, style: AppTheme.caption()),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -178,7 +175,9 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
               onPressed: _onStart,
               foregroundColor: AppColors.surfaceLow,
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
+                horizontal: AppSpacing.xxl,
+                vertical: AppSpacing.lg,
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -186,10 +185,12 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
                   const Icon(Icons.play_arrow_rounded, size: 28),
                   const SizedBox(width: AppSpacing.md),
                   Flexible(
-                    child: Text(l10n.lobbyStart,
-                        style: AppTheme.heading(22),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      l10n.lobbyStart,
+                      style: AppTheme.heading(22),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -213,9 +214,7 @@ class _XoxLobbyScreenState extends State<XoxLobbyScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const FadeSlideIn(
-          child: Text('⚡', style: TextStyle(fontSize: 56)),
-        ),
+        const FadeSlideIn(child: Text('⚡', style: TextStyle(fontSize: 56))),
         const SizedBox(height: AppSpacing.xl),
         FadeSlideIn(
           delay: const Duration(milliseconds: 500),
@@ -269,7 +268,9 @@ class _NameField extends StatelessWidget {
       color: AppColors.surface,
       borderColor: AppColors.border,
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
+      ),
       child: TextFormField(
         controller: controller,
         focusNode: focusNode,
@@ -282,7 +283,9 @@ class _NameField extends StatelessWidget {
           border: InputBorder.none,
           counterText: '',
           hintText: hint,
-          hintStyle: AppTheme.headline(color: AppColors.whiteMuted.withValues(alpha: 0.4)),
+          hintStyle: AppTheme.headline(
+            color: AppColors.whiteMuted.withValues(alpha: 0.4),
+          ),
           icon: Icon(icon, color: AppColors.pitchGreen, size: 28),
         ),
         validator: validator,
@@ -309,7 +312,9 @@ class _AssignmentChip extends StatelessWidget {
       color: AppColors.surface,
       borderColor: color.withValues(alpha: 0.3),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.lg,
+      ),
       child: Row(
         children: [
           // Mark badge
@@ -320,7 +325,10 @@ class _AssignmentChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+              border: Border.all(
+                color: color.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
             ),
             child: Text(mark, style: AppTheme.display(color: color)),
           ),

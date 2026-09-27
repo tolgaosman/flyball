@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/animations.dart';
 import '../widgets/premium_button.dart';
 import '../widgets/premium_card.dart';
+import '../widgets/screen_fit.dart';
 
 /// Shared "Coming Soon" screen used by not-yet-built games.
 ///
@@ -35,77 +36,85 @@ class ComingSoonScreen extends StatelessWidget {
       appBar: AppBar(title: Text(title.toUpperCase())),
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xl,
-              vertical: AppSpacing.xl,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FadeSlideIn(child: _GlowingIcon(icon: icon)),
-                AppSpacing.gapLg,
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 60),
-                  child: _SoonChip(label: l10n.comingSoonBadge),
-                ),
-                AppSpacing.gapMd,
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 100),
-                  child: Text(
-                    title.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: AppTheme.display(),
+          child: ScreenFit(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.xl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FadeSlideIn(child: _GlowingIcon(icon: icon)),
+                  AppSpacing.gapLg,
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 60),
+                    child: _SoonChip(label: l10n.comingSoonBadge),
                   ),
-                ),
-                AppSpacing.gapMd,
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 140),
-                  child: Text(
-                    tagline,
-                    textAlign: TextAlign.center,
-                    style: AppTheme.body(color: AppColors.textMuted),
-                  ),
-                ),
-                AppSpacing.gapXxl,
-                _PreviewRow(word: previewWord),
-                AppSpacing.gapXxl,
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 260),
-                  child: PremiumCard(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.md,
+                  AppSpacing.gapMd,
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 100),
+                    child: Text(
+                      title.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: AppTheme.display(),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < features.length; i++) ...[
-                          if (i > 0)
-                            const Divider(height: AppSpacing.xl, color: AppColors.border),
-                          _FeatureRow(icon: features[i].$1, label: features[i].$2),
+                  ),
+                  AppSpacing.gapMd,
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 140),
+                    child: Text(
+                      tagline,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.body(color: AppColors.textMuted),
+                    ),
+                  ),
+                  AppSpacing.gapXxl,
+                  _PreviewRow(word: previewWord),
+                  AppSpacing.gapXxl,
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 260),
+                    child: PremiumCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < features.length; i++) ...[
+                            if (i > 0)
+                              const Divider(
+                                height: AppSpacing.xl,
+                                color: AppColors.border,
+                              ),
+                            _FeatureRow(
+                              icon: features[i].$1,
+                              label: features[i].$2,
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                AppSpacing.gapXxl,
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 320),
-                  child: PremiumButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    color: AppColors.surfaceHigh,
-                    foregroundColor: AppColors.textPrimary,
-                    borderColor: AppColors.border,
-                    expand: false,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xl,
-                      vertical: AppSpacing.md,
+                  AppSpacing.gapXxl,
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 320),
+                    child: PremiumButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      color: AppColors.surfaceHigh,
+                      foregroundColor: AppColors.textPrimary,
+                      borderColor: AppColors.border,
+                      expand: false,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                        vertical: AppSpacing.md,
+                      ),
+                      child: Text(l10n.comingSoonBack),
                     ),
-                    child: Text(l10n.comingSoonBack),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -242,8 +251,9 @@ class _LetterTile extends StatelessWidget {
       1 => AppColors.gold,
       _ => AppColors.surfaceHigh,
     };
-    final foreground =
-        colorIndex == 2 ? AppColors.textPrimary : AppColors.surfaceLow;
+    final foreground = colorIndex == 2
+        ? AppColors.textPrimary
+        : AppColors.surfaceLow;
     return Container(
       width: 40,
       height: 40,
@@ -251,9 +261,7 @@ class _LetterTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: colorIndex == 2
-            ? Border.all(color: AppColors.border)
-            : null,
+        border: colorIndex == 2 ? Border.all(color: AppColors.border) : null,
       ),
       child: Text(letter, style: AppTheme.heading(20, color: foreground)),
     );
@@ -274,9 +282,7 @@ class _FeatureRow extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: AppColors.pitchGreen),
           AppSpacing.gapMd,
-          Expanded(
-            child: Text(label, style: AppTheme.body()),
-          ),
+          Expanded(child: Text(label, style: AppTheme.body())),
         ],
       ),
     );

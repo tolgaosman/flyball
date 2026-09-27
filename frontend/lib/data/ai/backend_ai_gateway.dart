@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flyball_core/flyball_core.dart';
 import 'package:http/http.dart' as http;
 
+import 'ai_exceptions.dart';
 import 'ai_gateway.dart';
 
 /// Talks to the Flyball backend (`backend/`), which holds the Gemini key
@@ -64,10 +65,13 @@ class BackendAiGateway implements AiGateway {
             body: jsonEncode(body),
           )
           .timeout(_answerTimeout);
+      if (res.statusCode == 429) throw const AiUnavailableException.quotaExceeded();
       if (res.statusCode != 200) return null;
       final decoded = jsonDecode(res.body);
       if (decoded is! Map<String, dynamic>) return null;
       return AnswerResult.fromJson(decoded);
+    } on AiUnavailableException {
+      rethrow;
     } catch (_) {
       return null;
     }
@@ -76,9 +80,12 @@ class BackendAiGateway implements AiGateway {
   Future<Map<String, dynamic>?> _getJson(String path, Duration timeout) async {
     try {
       final res = await _client.get(Uri.parse('$_baseUrl$path')).timeout(timeout);
+      if (res.statusCode == 429) throw const AiUnavailableException.quotaExceeded();
       if (res.statusCode != 200) return null;
       final decoded = jsonDecode(res.body);
       return decoded is Map<String, dynamic> ? decoded : null;
+    } on AiUnavailableException {
+      rethrow;
     } catch (_) {
       return null;
     }

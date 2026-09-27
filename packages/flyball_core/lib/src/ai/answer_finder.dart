@@ -37,8 +37,17 @@ class AnswerFinder {
     final candidates = await _recall(condition1, condition2);
     if (candidates == null || candidates.isEmpty) return null;
 
-    // PHASE 2 — VERIFY: confirm each candidate against grounded sources.
-    final verified = await _verify(candidates, condition1, condition2);
+    // PHASE 2 — VERIFY: confirm each candidate against grounded sources. A
+    // quota failure here is treated the same as any other verify failure
+    // (fall through to the unverified recall list below) rather than
+    // aborting outright — the recall phase already succeeded, so there's a
+    // real (if unverified) list worth showing.
+    List<String>? verified;
+    try {
+      verified = await _verify(candidates, condition1, condition2);
+    } on GeminiQuotaExceededException {
+      verified = null;
+    }
 
     if (verified != null && verified.isNotEmpty) {
       return AnswerResult(verified, verified: true);

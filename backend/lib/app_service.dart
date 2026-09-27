@@ -21,7 +21,7 @@ class AppService {
   final BoardBuilder boardBuilder;
   final RoundPicker roundPicker;
 
-  static const _bufferTarget = 3;
+  static const _bufferTarget = 0;
 
   final Map<String, Future<AnswerResult?>> _inFlightAnswers = {};
   bool _toppingUpRounds = false;
@@ -91,7 +91,15 @@ class AppService {
       return result;
     });
     _inFlightAnswers[key] = future;
-    unawaited(future.whenComplete(() => _inFlightAnswers.remove(key)));
+    // `.whenComplete()` opens its own, independent listener branch on
+    // `future` — since `future` (returned below) can now throw
+    // GeminiQuotaExceededException instead of just resolving to null, that
+    // branch needs its own error handling too, or Dart reports it as an
+    // unhandled async error even though the caller of `_dedupedSearch`
+    // already catches the very same error on the `future` it awaits.
+    unawaited(
+      future.whenComplete(() => _inFlightAnswers.remove(key)).catchError((_) => null),
+    );
     return future;
   }
 
@@ -127,6 +135,8 @@ class AppService {
           await cache.pushRound(round);
           count++;
         }
+      } on GeminiQuotaExceededException {
+        // Quota exhausted — stop, don't spin (same as a null result above).
       } finally {
         _toppingUpRounds = false;
       }
@@ -145,6 +155,8 @@ class AppService {
           await cache.pushBoard(board);
           count++;
         }
+      } on GeminiQuotaExceededException {
+        // Quota exhausted — stop, don't spin (same as a null result above).
       } finally {
         _toppingUpBoards = false;
       }

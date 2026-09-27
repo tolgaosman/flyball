@@ -15,7 +15,21 @@ class EnvConfig {
   });
 
   factory EnvConfig.fromEnvironment() {
-    final env = Platform.environment;
+    final env = Map<String, String>.from(Platform.environment);
+    
+    final envFile = File('.env');
+    if (envFile.existsSync()) {
+      for (final line in envFile.readAsLinesSync()) {
+        if (line.trim().isEmpty || line.startsWith('#')) continue;
+        final parts = line.split('=');
+        if (parts.length >= 2) {
+          final key = parts[0].trim();
+          final value = parts.sublist(1).join('=').trim();
+          env[key] = value;
+        }
+      }
+    }
+
     return EnvConfig(
       geminiApiKey: env['GEMINI_API_KEY'] ?? '',
       geminiModel: env['GEMINI_MODEL'] ?? 'gemini-2.5-flash',

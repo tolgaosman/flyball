@@ -1,5 +1,6 @@
 import 'package:flyball_core/flyball_core.dart';
 
+import '../../data/ai/ai_exceptions.dart';
 import '../../data/ai/ai_gateway.dart';
 
 /// Keeps one party-game [Round] pre-fetched ahead of the one on screen, so
@@ -35,6 +36,11 @@ class RoundQueue {
     _prefetching = _fetch().then((round) {
       _buffered = round;
       return round;
-    }).whenComplete(() => _prefetching = null);
+    }).catchError((Object _) {
+      // Background prefetch — nothing to show a retry UI to. Treat the same
+      // as a `null` result: leave `_buffered` unset and let the next
+      // foreground `next()` call surface the real error.
+      return null;
+    }, test: (e) => e is AiUnavailableException).whenComplete(() => _prefetching = null);
   }
 }

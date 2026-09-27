@@ -28,6 +28,17 @@ abstract class GeminiTransport {
   });
 }
 
+/// Thrown by [DirectGeminiTransport] instead of returning `null` when Gemini
+/// responds with HTTP 429 (quota/rate-limit exhausted) — distinct from every
+/// other failure (network, timeout, malformed response), which still returns
+/// `null` as before. Callers that don't care about the distinction can leave
+/// it uncaught: it propagates past retry loops that only check for `null`,
+/// which is the point — retrying a call that's guaranteed to fail the same
+/// way just wastes what quota may still exist.
+class GeminiQuotaExceededException implements Exception {
+  const GeminiQuotaExceededException();
+}
+
 /// Calls the Gemini API directly (`v1beta/models/<model>:generateContent`)
 /// with the Google Search grounding tool attached. Used server-side by the
 /// backend (where the key never leaves the server) and optionally by the
@@ -35,7 +46,7 @@ abstract class GeminiTransport {
 class DirectGeminiTransport implements GeminiTransport {
   DirectGeminiTransport(this.config, {http.Client? client, Duration? timeout})
       : _client = client ?? http.Client(),
-        _timeout = timeout ?? const Duration(seconds: 20);
+        _timeout = timeout ?? const Duration(seconds: 60);
 
   final GeminiConfig config;
   final http.Client _client;
@@ -50,7 +61,7 @@ class DirectGeminiTransport implements GeminiTransport {
     if (!config.hasKey) return null;
     final uri = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/'
-      '${config.model}:generateContent',
+      '${config.model}:generateContent?key=${config.apiKey}',
     );
     final body = jsonEncode({
       'contents': [
@@ -70,21 +81,22 @@ class DirectGeminiTransport implements GeminiTransport {
       },
     });
 
+    final http.Response res;
     try {
-      final res = await _client
+      res = await _client
           .post(
             uri,
             headers: {
               'Content-Type': 'application/json',
-              'x-goog-api-key': config.apiKey,
             },
             body: body,
           )
           .timeout(_timeout);
-      if (res.statusCode != 200) return null;
-      return res.body;
     } catch (_) {
       return null;
     }
+    if (res.statusCode == 429) throw const GeminiQuotaExceededException();
+    if (res.statusCode != 200) return null;
+    return res.body;
   }
 }
